@@ -492,6 +492,21 @@
     outline:none;
   }
   .field input:focus{ border-color:var(--gold); }
+  .checkbox-field{
+    display:flex; align-items:center; gap:9px;
+    flex-direction:row;
+  }
+  .checkbox-field input[type="checkbox"]{
+    width:18px; height:18px; flex:none;
+    accent-color:var(--gold);
+    cursor:pointer;
+  }
+  .checkbox-field label{
+    font-size:14px; color:var(--ink);
+    text-transform:none; letter-spacing:normal; font-weight:500;
+    cursor:pointer;
+  }
+  .field-hint{ font-size:11.5px; color:var(--ink-faint); margin-top:-2px; }
   .sheet-actions{ display:flex; gap:10px; margin-top:2px; }
   .sheet-actions button{
     flex:1;
@@ -505,6 +520,9 @@
   }
   #cancelBtn{ background:var(--paper); color:var(--ink); border:1px solid var(--line); }
   #saveBtn{ background:var(--gold); color:var(--paper); }
+  .confirm-desc{ margin:0; font-size:13.5px; line-height:1.5; color:var(--ink-soft); }
+  .sheet-actions button.danger{ background:var(--coral); color:#fff; }
+  .sheet-actions button.neutral{ background:var(--paper); color:var(--ink); border:1px solid var(--line); }
 
   footer{
     text-align:center;
@@ -560,6 +578,21 @@
   .compare.up{ color:var(--coral); }
   .compare.down{ color:var(--mint); }
   .compare.flat{ color:var(--ink-faint); font-weight:500; }
+
+  .insight-card{
+    display:flex; align-items:flex-start; gap:10px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:12px 14px;
+    font-size:13.5px;
+    line-height:1.45;
+    color:var(--ink-soft);
+  }
+  .insight-card .insight-icon{ flex:none; font-size:15px; }
+  .insight-card strong{ color:var(--ink); font-weight:600; }
+  .insight-card .pct.up{ color:var(--coral); }
+  .insight-card .pct.down{ color:var(--mint); }
 
   .cal-toggle{
     background:none;border:none;color:var(--mint);
@@ -786,6 +819,11 @@
   <div>
     <div class="list-header">
       <h2>Spending</h2>
+    </div>
+
+    <div class="insight-card" id="insightCard" style="margin-top:12px;">
+      <span class="insight-icon">💡</span>
+      <span id="insightText">Log some spending to see insights here.</span>
     </div>
 
     <div class="tabs" style="margin-top:12px;">
@@ -1017,8 +1055,17 @@
       <input id="amountInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
     </div>
     <div class="field">
-      <label>Due date (optional)</label>
+      <label id="dueDateLabel">Due date (optional)</label>
       <input id="dueDateInput" type="date">
+    </div>
+    <div class="field checkbox-field">
+      <input type="checkbox" id="recurringCheckbox">
+      <label for="recurringCheckbox">Repeats every month</label>
+    </div>
+    <div class="field" id="recurringMonthsField" style="display:none;">
+      <label>End after how many months?</label>
+      <input id="recurringMonthsInput" type="number" inputmode="numeric" placeholder="Leave blank to repeat forever" min="1" step="1">
+      <div class="field-hint">e.g. 6 for a 6-month payment plan</div>
     </div>
     <div class="sheet-actions">
       <button id="cancelBtn">Cancel</button>
@@ -1055,6 +1102,17 @@
     <div class="sheet-actions">
       <button id="saveAddCancelBtn" type="button">Cancel</button>
       <button id="saveAddSaveBtn" type="button">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="confirmOverlay">
+  <div class="sheet">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p class="confirm-desc" id="confirmDesc"></p>
+    <div class="sheet-actions">
+      <button id="confirmNoBtn" type="button" class="neutral">No, keep it</button>
+      <button id="confirmYesBtn" type="button" class="danger">Yes, delete</button>
     </div>
   </div>
 </div>
@@ -1160,8 +1218,17 @@
   var nameInput = document.getElementById('nameInput');
   var amountInput = document.getElementById('amountInput');
   var dueDateInput = document.getElementById('dueDateInput');
+  var dueDateLabel = document.getElementById('dueDateLabel');
+  var recurringCheckbox = document.getElementById('recurringCheckbox');
+  var recurringMonthsField = document.getElementById('recurringMonthsField');
+  var recurringMonthsInput = document.getElementById('recurringMonthsInput');
   var cancelBtn = document.getElementById('cancelBtn');
   var saveBtn = document.getElementById('saveBtn');
+
+  recurringCheckbox.addEventListener('change', function(){
+    recurringMonthsField.style.display = recurringCheckbox.checked ? '' : 'none';
+    dueDateLabel.textContent = recurringCheckbox.checked ? 'Due date (needed to repeat monthly)' : 'Due date (optional)';
+  });
 
   var savingsList = document.getElementById('savingsList');
   var addSaveGoalBtn = document.getElementById('addSaveGoalBtn');
@@ -1178,6 +1245,31 @@
   var saveAddSaveBtn = document.getElementById('saveAddSaveBtn');
   var saveAddTargetId = null;
   var saveAddMode = 'add';
+
+  var confirmOverlay = document.getElementById('confirmOverlay');
+  var confirmTitle = document.getElementById('confirmTitle');
+  var confirmDesc = document.getElementById('confirmDesc');
+  var confirmNoBtn = document.getElementById('confirmNoBtn');
+  var confirmYesBtn = document.getElementById('confirmYesBtn');
+  var confirmAction = null;
+
+  function showConfirm(title, desc, onConfirm){
+    confirmTitle.textContent = title;
+    confirmDesc.textContent = desc;
+    confirmAction = onConfirm;
+    confirmOverlay.classList.add('open');
+  }
+  function closeConfirm(){
+    confirmOverlay.classList.remove('open');
+    confirmAction = null;
+  }
+  confirmNoBtn.addEventListener('click', closeConfirm);
+  confirmOverlay.addEventListener('click', function(e){ if(e.target === confirmOverlay) closeConfirm(); });
+  confirmYesBtn.addEventListener('click', function(){
+    var action = confirmAction;
+    closeConfirm();
+    if(action) action();
+  });
 
   addSaveGoalBtn.addEventListener('click', function(){
     saveGoalNameInput.value = '';
@@ -1254,6 +1346,10 @@
     nameInput.value = '';
     amountInput.value = '';
     dueDateInput.value = '';
+    recurringCheckbox.checked = false;
+    recurringMonthsInput.value = '';
+    recurringMonthsField.style.display = 'none';
+    dueDateLabel.textContent = 'Due date (optional)';
     overlay.classList.add('open');
     setTimeout(function(){ nameInput.focus(); }, 50);
   });
@@ -1264,9 +1360,16 @@
     var name = (nameInput.value || '').trim();
     var amt = parseFloat(amountInput.value);
     var dueDate = dueDateInput.value || '';
+    var isRecurring = recurringCheckbox.checked;
     if(!name){ nameInput.focus(); return; }
     if(!amt || amt <= 0){ amountInput.focus(); return; }
-    state.items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, amount: amt, dueDate: dueDate, paid: false });
+    if(isRecurring && !dueDate){ dueDateInput.focus(); return; }
+    var recurring = null;
+    if(isRecurring){
+      var months = parseInt(recurringMonthsInput.value, 10);
+      recurring = { months: (months && months > 0) ? months : null, occurrencesDone: 1 };
+    }
+    state.items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, amount: amt, dueDate: dueDate, paid: false, recurring: recurring });
     save(); render(); closeSheet();
   });
 
@@ -1307,6 +1410,41 @@
     var today = new Date();
     today.setHours(0,0,0,0);
     return d.getTime() < today.getTime();
+  }
+  function parseLocalDate(dateStr){
+    var parts = (dateStr||'').split('-');
+    if(parts.length !== 3) return null;
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function formatISODate(d){
+    var y = d.getFullYear();
+    var m = ('0'+(d.getMonth()+1)).slice(-2);
+    var day = ('0'+d.getDate()).slice(-2);
+    return y+'-'+m+'-'+day;
+  }
+  function processRecurring(){
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    var changed = false;
+    (state.items || []).forEach(function(item){
+      if(!item.recurring || !item.paid || !item.dueDate) return;
+      var due = parseLocalDate(item.dueDate);
+      if(!due || due.getTime() >= today.getTime()) return;
+      var occurrences = item.recurring.occurrencesDone || 1;
+      var limit = item.recurring.months;
+      if(limit && occurrences >= limit){
+        item.recurring = null;
+        changed = true;
+        return;
+      }
+      var next = new Date(due.getFullYear(), due.getMonth()+1, due.getDate());
+      item.dueDate = formatISODate(next);
+      item.paid = false;
+      item.recurring.occurrencesDone = occurrences + 1;
+      changed = true;
+    });
+    if(changed) save();
   }
 
   function render(){
@@ -1415,11 +1553,16 @@
           setTimeout(function(){ saveAddAmountInput.focus(); }, 50);
         });
         row.querySelector('.del').addEventListener('click', function(){
-          if(goal.saved){
-            state.savingsArchiveTotal = round2((state.savingsArchiveTotal || 0) + goal.saved);
-          }
-          state.savings = state.savings.filter(function(g){ return g.id !== goal.id; });
-          save(); render();
+          var desc = (goal.saved > 0)
+            ? 'You\'ve already put ' + fmt(goal.saved) + ' toward this — that stays deducted from Left Over. Deleting only removes the goal itself, not the money.'
+            : 'You haven\'t put any money toward this yet, so nothing changes in Left Over — this just removes the goal.';
+          showConfirm('Delete "' + goal.name + '"?', desc, function(){
+            if(goal.saved){
+              state.savingsArchiveTotal = round2((state.savingsArchiveTotal || 0) + goal.saved);
+            }
+            state.savings = state.savings.filter(function(g){ return g.id !== goal.id; });
+            save(); render();
+          });
         });
         savingsList.appendChild(row);
       });
@@ -1438,6 +1581,12 @@
         row.className = 'item' + (item.paid ? ' paid' : '');
         var overdue = !item.paid && isOverdue(item.dueDate);
         var dueLabel = item.dueDate ? (overdue ? 'Overdue ' : 'Due ') + formatDueDate(item.dueDate) : (item.paid ? 'Paid' : pct + '% of total');
+        if(item.recurring){
+          dueLabel += ' · Monthly';
+          if(item.recurring.months){
+            dueLabel += ' (' + (item.recurring.occurrencesDone || 1) + '/' + item.recurring.months + ')';
+          }
+        }
         row.innerHTML =
           '<div class="dot" style="background:' + COLORS[idx % COLORS.length] + '"></div>' +
           '<div class="info"><div class="name"></div><div class="due' + (overdue ? ' overdue' : '') + '"></div></div>' +
@@ -1454,11 +1603,22 @@
           save(); render();
         });
         row.querySelector('.del').addEventListener('click', function(){
-          if(item.paid){
-            state.paidArchiveTotal = (state.paidArchiveTotal || 0) + item.amount;
+          var desc = '';
+          if(item.recurring){
+            desc += 'This bill repeats monthly — deleting it stops the recurring cycle for good; it won\'t come back next month. ';
           }
-          state.items = state.items.filter(function(i){ return i.id !== item.id; });
-          save(); render();
+          if(item.paid){
+            desc += 'You already marked it Paid, so ' + fmt(item.amount) + ' stays deducted from Left Over — deleting only removes it from this list.';
+          } else {
+            desc += 'It hasn\'t been paid yet, so nothing will change in Left Over — this just removes it from your list.';
+          }
+          showConfirm('Delete "' + item.name + '"?', desc, function(){
+            if(item.paid){
+              state.paidArchiveTotal = (state.paidArchiveTotal || 0) + item.amount;
+            }
+            state.items = state.items.filter(function(i){ return i.id !== item.id; });
+            save(); render();
+          });
         });
         list.appendChild(row);
       });
@@ -1477,6 +1637,7 @@
     return { total: 0, items: [] };
   }
 
+  processRecurring();
   render();
 
   /* ================= daily / monthly / yearly spending ================= */
@@ -1540,6 +1701,8 @@
   var yearNetV = document.getElementById('yearNetV');
   var yearTopCats = document.getElementById('yearTopCats');
   var yearAvgLine = document.getElementById('yearAvgLine');
+
+  var insightText = document.getElementById('insightText');
 
   var spendOverlay = document.getElementById('spendOverlay');
   var spendNameInput = document.getElementById('spendNameInput');
@@ -1786,6 +1949,91 @@
     });
   }
 
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  function categoryTotalsForKeys(keys){
+    var byName = {};
+    keys.forEach(function(k){
+      (spendState[k]||[]).forEach(function(e){
+        byName[e.name] = (byName[e.name]||0) + e.amount;
+      });
+    });
+    return byName;
+  }
+
+  function weekKeysFor(startDate){
+    var keys = [];
+    for(var i=0;i<7;i++){ keys.push(fmtDateKey(addDays(startDate, i))); }
+    return keys;
+  }
+
+  function renderInsight(){
+    var thisWeekStart = getWeekStart(todayDate);
+    var lastWeekStart = addDays(thisWeekStart, -7);
+    var thisWeekCats = categoryTotalsForKeys(weekKeysFor(thisWeekStart));
+    var lastWeekCats = categoryTotalsForKeys(weekKeysFor(lastWeekStart));
+
+    var thisWeekTotal = Object.keys(thisWeekCats).reduce(function(s,n){ return s+thisWeekCats[n]; }, 0);
+    var lastWeekTotal = Object.keys(lastWeekCats).reduce(function(s,n){ return s+lastWeekCats[n]; }, 0);
+
+    if(thisWeekTotal === 0 && lastWeekTotal === 0){
+      insightText.innerHTML = 'Log some spending to see insights here.';
+      return;
+    }
+
+    // Find the category with the biggest dollar swing week-over-week (needs data in both weeks).
+    var allNames = {};
+    Object.keys(thisWeekCats).forEach(function(n){ allNames[n] = true; });
+    Object.keys(lastWeekCats).forEach(function(n){ allNames[n] = true; });
+
+    var best = null;
+    Object.keys(allNames).forEach(function(n){
+      var cur = thisWeekCats[n] || 0;
+      var prev = lastWeekCats[n] || 0;
+      if(prev <= 0) return;
+      var diff = Math.abs(cur - prev);
+      if(!best || diff > best.diff){
+        best = { name: n, cur: cur, prev: prev, diff: diff };
+      }
+    });
+
+    if(best && best.diff > 0){
+      var pct = Math.round(((best.cur - best.prev) / best.prev) * 100);
+      var dir = pct > 0 ? 'up' : 'down';
+      var word = pct > 0 ? 'more' : 'less';
+      insightText.innerHTML = 'You spent <span class="pct ' + dir + '">' + Math.abs(pct) + '% ' + word + '</span> on <strong>' + escapeHtml(best.name) + '</strong> this week than last (' + fmt(best.cur) + ' vs ' + fmt(best.prev) + ').';
+      return;
+    }
+
+    // No overlapping category — look for a brand-new category this week.
+    var newName = null, newAmt = 0;
+    Object.keys(thisWeekCats).forEach(function(n){
+      if(!lastWeekCats[n] && thisWeekCats[n] > newAmt){ newName = n; newAmt = thisWeekCats[n]; }
+    });
+    if(newName){
+      insightText.innerHTML = 'New this week: <strong>' + fmt(newAmt) + '</strong> on <strong>' + escapeHtml(newName) + '</strong> that you didn\'t spend on last week.';
+      return;
+    }
+
+    // Fall back to an overall week-over-week comparison.
+    if(lastWeekTotal === 0){
+      insightText.innerHTML = 'You logged <strong>' + fmt(thisWeekTotal) + '</strong> in spending this week — new vs last week.';
+    } else {
+      var totalPct = Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100);
+      if(totalPct === 0){
+        insightText.innerHTML = 'Your spending is about the same as last week.';
+      } else {
+        var totalDir = totalPct > 0 ? 'up' : 'down';
+        var totalWord = totalPct > 0 ? 'more' : 'less';
+        insightText.innerHTML = 'You spent <span class="pct ' + totalDir + '">' + Math.abs(totalPct) + '% ' + totalWord + '</span> overall this week than last.';
+      }
+    }
+  }
+
   var WEEKDAY_LETTERS = ['S','M','T','W','T','F','S'];
 
   function weekTotalFor(startDate){
@@ -1947,6 +2195,7 @@
     renderWeekly();
     renderMonthly();
     renderYearly();
+    renderInsight();
   }
 
   renderAll();
@@ -2058,6 +2307,7 @@
     if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
     if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
     if(document.activeElement !== totalInput) totalInput.value = state.total || '';
+    processRecurring();
     render(); renderAll();
   }
 
@@ -2089,6 +2339,7 @@
         if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
         if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
         totalInput.value = state.total || '';
+        processRecurring();
         render(); renderAll();
         setSyncStatus('Synced');
       } else {
