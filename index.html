@@ -599,6 +599,32 @@
     font-size:12.5px;font-weight:600;cursor:pointer;padding:0;
     font-family:"IBM Plex Sans", sans-serif;
   }
+  .history-toggle-wrap{ text-align:center; margin-top:-4px; }
+  #incomeHistoryPanel{
+    width:100%;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:6px 14px;
+    box-shadow:var(--shadow);
+  }
+  .income-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .income-row:last-child{ border-bottom:none; }
+  .income-row .info{ flex:1; min-width:0; }
+  .income-row .name{ font-size:14px; font-weight:600; }
+  .income-row .date{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
+  .income-row .amt{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:14px; font-weight:600; white-space:nowrap;
+    color:var(--mint);
+    font-variant-numeric:tabular-nums;
+  }
 
   .chart-label{
     font-size:11px; text-transform:uppercase; letter-spacing:.06em;
@@ -787,6 +813,11 @@
       <input id="totalInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
       <button id="addMoneyBtn" type="button" aria-label="Add money">+</button>
     </div>
+
+    <div class="history-toggle-wrap">
+      <button class="cal-toggle" id="incomeHistoryToggleBtn" type="button">Show history ▾</button>
+    </div>
+    <div id="incomeHistoryPanel" style="display:none;"></div>
   </div>
 
   <div class="stats">
@@ -1018,6 +1049,10 @@
       <label>Amount received</label>
       <input id="addMoneyAmountInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
     </div>
+    <div class="field">
+      <label>From (optional)</label>
+      <input id="addMoneyFromInput" type="text" placeholder="Dad's fund, Paycheck, Side gig…" maxlength="24">
+    </div>
     <div class="sheet-actions">
       <button id="addMoneyCancelBtn" type="button">Cancel</button>
       <button id="addMoneySaveBtn" type="button">Add</button>
@@ -1203,6 +1238,7 @@
   var state = load();
   if(!state.savings) state.savings = [];
   if(!state.savingsArchiveTotal) state.savingsArchiveTotal = 0;
+  if(!state.incomeHistory) state.incomeHistory = [];
 
   var SPEND_KEY = 'money-circle-spending-v1';
   var spendState = loadSpend();
@@ -1323,11 +1359,15 @@
   var addMoneyBtn = document.getElementById('addMoneyBtn');
   var addMoneyOverlay = document.getElementById('addMoneyOverlay');
   var addMoneyAmountInput = document.getElementById('addMoneyAmountInput');
+  var addMoneyFromInput = document.getElementById('addMoneyFromInput');
   var addMoneyCancelBtn = document.getElementById('addMoneyCancelBtn');
   var addMoneySaveBtn = document.getElementById('addMoneySaveBtn');
+  var incomeHistoryToggleBtn = document.getElementById('incomeHistoryToggleBtn');
+  var incomeHistoryPanel = document.getElementById('incomeHistoryPanel');
 
   addMoneyBtn.addEventListener('click', function(){
     addMoneyAmountInput.value = '';
+    addMoneyFromInput.value = '';
     addMoneyOverlay.classList.add('open');
     setTimeout(function(){ addMoneyAmountInput.focus(); }, 50);
   });
@@ -1336,11 +1376,48 @@
   addMoneySaveBtn.addEventListener('click', function(){
     var amt = parseFloat(addMoneyAmountInput.value);
     if(!amt || amt <= 0){ addMoneyAmountInput.focus(); return; }
+    var source = (addMoneyFromInput.value || '').trim();
     state.total = round2((state.total || 0) + amt);
     totalInput.value = state.total;
-    save(); render(); renderYearly();
+    if(!state.incomeHistory) state.incomeHistory = [];
+    state.incomeHistory.unshift({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), amount: round2(amt), source: source, dateKey: fmtDateKey(new Date()) });
+    if(state.incomeHistory.length > 200) state.incomeHistory = state.incomeHistory.slice(0, 200);
+    save(); render(); renderYearly(); renderIncomeHistory();
     addMoneyOverlay.classList.remove('open');
   });
+
+  incomeHistoryToggleBtn.addEventListener('click', function(){
+    var showing = incomeHistoryPanel.style.display !== 'none';
+    if(showing){
+      incomeHistoryPanel.style.display = 'none';
+      incomeHistoryToggleBtn.textContent = 'Show history ▾';
+    } else {
+      renderIncomeHistory();
+      incomeHistoryPanel.style.display = '';
+      incomeHistoryToggleBtn.textContent = 'Hide history ▴';
+    }
+  });
+
+  function renderIncomeHistory(){
+    incomeHistoryPanel.innerHTML = '';
+    var history = state.incomeHistory || [];
+    if(history.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'day-empty';
+      empty.textContent = 'No money added yet — use the + next to "You have" to log where it came from.';
+      incomeHistoryPanel.appendChild(empty);
+      return;
+    }
+    history.forEach(function(entry){
+      var row = document.createElement('div');
+      row.className = 'income-row';
+      row.innerHTML = '<div class="info"><div class="name"></div><div class="date"></div></div><div class="amt"></div>';
+      row.querySelector('.name').textContent = entry.source ? entry.source : 'Added money';
+      row.querySelector('.date').textContent = formatDueDate(entry.dateKey) || '';
+      row.querySelector('.amt').textContent = '+' + fmt(entry.amount);
+      incomeHistoryPanel.appendChild(row);
+    });
+  }
 
   addBtn.addEventListener('click', function(){
     nameInput.value = '';
@@ -2308,7 +2385,7 @@
     if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
     if(document.activeElement !== totalInput) totalInput.value = state.total || '';
     processRecurring();
-    render(); renderAll();
+    render(); renderAll(); renderIncomeHistory();
   }
 
   function startRealtimeSync(user){
@@ -2340,7 +2417,7 @@
         if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
         totalInput.value = state.total || '';
         processRecurring();
-        render(); renderAll();
+        render(); renderAll(); renderIncomeHistory();
         setSyncStatus('Synced');
       } else {
         pushToCloud();
