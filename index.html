@@ -352,13 +352,30 @@
     padding:12px 14px;
   }
   .item .dot{ width:10px;height:10px;border-radius:50%;flex:none; }
+  .item.paid .dot{ opacity:.35; }
   .item .info{ flex:1; min-width:0; }
   .item .name{ font-size:14.5px; font-weight:600; }
+  .item.paid .name{ opacity:.55; text-decoration:line-through; text-decoration-color:var(--ink-faint); }
   .item .pct{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; font-variant-numeric:tabular-nums; }
+  .item .due{ font-size:11.5px; margin-top:1px; font-variant-numeric:tabular-nums; color:var(--ink-faint); }
+  .item .due.overdue{ color:var(--coral); font-weight:600; }
   .item .amt{
     font-family:"IBM Plex Mono", monospace;
     font-size:14.5px; font-weight:600; white-space:nowrap;
     font-variant-numeric:tabular-nums;
+  }
+  .item.paid .amt{ opacity:.55; }
+  .item .row-actions{ display:flex; align-items:center; gap:6px; flex:none; }
+  .item .paid-btn{
+    font-family:inherit;
+    font-size:12px; font-weight:600;
+    padding:6px 10px; cursor:pointer;
+    border-radius:8px; white-space:nowrap;
+    background:none; border:1px solid var(--line); color:var(--ink-soft);
+  }
+  .item .paid-btn:hover{ border-color:var(--mint); color:var(--mint); }
+  .item.paid .paid-btn{
+    background:var(--mint); border-color:var(--mint); color:var(--paper);
   }
   .item .del{
     background:none;border:none;color:var(--ink-faint);
@@ -707,6 +724,7 @@
 
     <div class="tabs" style="margin-top:12px;">
       <button class="tab-btn active" id="tabDailyBtn" type="button" data-tab="daily">Daily</button>
+      <button class="tab-btn" id="tabWeeklyBtn" type="button" data-tab="weekly">Weekly</button>
       <button class="tab-btn" id="tabMonthlyBtn" type="button" data-tab="monthly">Monthly</button>
       <button class="tab-btn" id="tabYearlyBtn" type="button" data-tab="yearly">Yearly</button>
     </div>
@@ -734,6 +752,27 @@
           <div class="cal-days" id="calDays"></div>
         </div>
         <div id="dayList"></div>
+      </div>
+    </div>
+
+    <!-- WEEKLY -->
+    <div class="tab-panel" id="panelWeekly" style="margin-top:12px;">
+      <div class="day-panel">
+        <div class="period-nav">
+          <button id="prevWeek" type="button" aria-label="Previous week">‹</button>
+          <div class="period-header">
+            <div class="cap" id="weekCap">This week</div>
+            <div class="big" id="weekTotalBig">$0</div>
+          </div>
+          <button id="nextWeek" type="button" aria-label="Next week">›</button>
+        </div>
+        <div class="compare flat" id="weekCompare">—</div>
+
+        <div class="chart-label">Daily spending</div>
+        <div class="bar-chart" id="weeklyBarChart"></div>
+
+        <div class="chart-label">Top categories</div>
+        <div id="weekTopCats"></div>
       </div>
     </div>
 
@@ -911,6 +950,10 @@
       <label>Amount</label>
       <input id="amountInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
     </div>
+    <div class="field">
+      <label>Due date (optional)</label>
+      <input id="dueDateInput" type="date">
+    </div>
     <div class="sheet-actions">
       <button id="cancelBtn">Cancel</button>
       <button id="saveBtn">Add</button>
@@ -1016,6 +1059,7 @@
   var overlay = document.getElementById('overlay');
   var nameInput = document.getElementById('nameInput');
   var amountInput = document.getElementById('amountInput');
+  var dueDateInput = document.getElementById('dueDateInput');
   var cancelBtn = document.getElementById('cancelBtn');
   var saveBtn = document.getElementById('saveBtn');
 
@@ -1051,6 +1095,7 @@
   addBtn.addEventListener('click', function(){
     nameInput.value = '';
     amountInput.value = '';
+    dueDateInput.value = '';
     overlay.classList.add('open');
     setTimeout(function(){ nameInput.focus(); }, 50);
   });
@@ -1060,9 +1105,10 @@
   saveBtn.addEventListener('click', function(){
     var name = (nameInput.value || '').trim();
     var amt = parseFloat(amountInput.value);
+    var dueDate = dueDateInput.value || '';
     if(!name){ nameInput.focus(); return; }
     if(!amt || amt <= 0){ amountInput.focus(); return; }
-    state.items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, amount: amt });
+    state.items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, amount: amt, dueDate: dueDate, paid: false });
     save(); render(); closeSheet();
   });
 
@@ -1082,15 +1128,36 @@
     return sum;
   }
 
+  function formatDueDate(dateStr){
+    if(!dateStr) return '';
+    var parts = dateStr.split('-');
+    if(parts.length !== 3) return '';
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    if(isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+  }
+  function isOverdue(dateStr){
+    if(!dateStr) return false;
+    var parts = dateStr.split('-');
+    if(parts.length !== 3) return false;
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    if(isNaN(d.getTime())) return false;
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    return d.getTime() < today.getTime();
+  }
+
   function render(){
     var total = state.total || 0;
     var items = state.items || [];
-    var allocated = items.reduce(function(s,i){ return s + i.amount; }, 0);
+    var paidTotal = items.reduce(function(s,i){ return s + (i.paid ? i.amount : 0); }, 0) + (state.paidArchiveTotal || 0);
+    var unpaidTotal = items.reduce(function(s,i){ return s + (i.paid ? 0 : i.amount); }, 0);
+    var allocated = paidTotal + unpaidTotal;
     var spent = spendGrandTotal();
-    var leftOver = total - allocated - spent;
+    var leftOver = total - paidTotal - spent;
 
     allocatedStat.textContent = fmt(allocated);
-    pctStat.textContent = total > 0 ? Math.round(((allocated+spent)/total)*100) + '%' : '0%';
+    pctStat.textContent = total > 0 ? Math.round(((paidTotal+spent)/total)*100) + '%' : '0%';
     leftAmount.textContent = fmt(leftOver);
     leftAmount.className = 'amount' + (leftOver < 0 ? ' negative' : '');
 
@@ -1100,17 +1167,30 @@
     var COLORS = getColors();
 
     items.forEach(function(item, idx){
+      if(!item.paid) return;
       var frac = basis > 0 ? item.amount / basis : 0;
       var deg = frac * 360;
       var color = COLORS[idx % COLORS.length];
       stops.push(color + ' ' + cursor.toFixed(3) + 'deg ' + (cursor+deg).toFixed(3) + 'deg');
       cursor += deg;
     });
+    if(state.paidArchiveTotal){
+      var archiveFrac = basis > 0 ? state.paidArchiveTotal / basis : 0;
+      var archiveDeg = archiveFrac * 360;
+      stops.push('var(--gold-deep) ' + cursor.toFixed(3) + 'deg ' + (cursor+archiveDeg).toFixed(3) + 'deg');
+      cursor += archiveDeg;
+    }
     if(spent > 0){
       var spentFrac = basis > 0 ? spent / basis : 0;
       var spentDeg = spentFrac * 360;
       stops.push('var(--mint) ' + cursor.toFixed(3) + 'deg ' + (cursor+spentDeg).toFixed(3) + 'deg');
       cursor += spentDeg;
+    }
+    if(unpaidTotal > 0){
+      var unpaidFrac = basis > 0 ? unpaidTotal / basis : 0;
+      var unpaidDeg = unpaidFrac * 360;
+      stops.push('var(--ring-empty) ' + cursor.toFixed(3) + 'deg ' + (cursor+unpaidDeg).toFixed(3) + 'deg');
+      cursor += unpaidDeg;
     }
     if(cursor < 360){
       var leftColor = leftOver < 0 ? 'var(--coral)' : 'var(--ring-empty)';
@@ -1128,15 +1208,28 @@
       items.forEach(function(item, idx){
         var pct = basis > 0 ? Math.round((item.amount/basis)*100) : 0;
         var row = document.createElement('div');
-        row.className = 'item';
+        row.className = 'item' + (item.paid ? ' paid' : '');
+        var overdue = !item.paid && isOverdue(item.dueDate);
+        var dueLabel = item.dueDate ? (overdue ? 'Overdue ' : 'Due ') + formatDueDate(item.dueDate) : (item.paid ? 'Paid' : pct + '% of total');
         row.innerHTML =
           '<div class="dot" style="background:' + COLORS[idx % COLORS.length] + '"></div>' +
-          '<div class="info"><div class="name"></div><div class="pct">' + pct + '% of total</div></div>' +
+          '<div class="info"><div class="name"></div><div class="due' + (overdue ? ' overdue' : '') + '"></div></div>' +
           '<div class="amt"></div>' +
-          '<button class="del" aria-label="Remove ' + item.name + '">✕</button>';
+          '<div class="row-actions">' +
+            '<button class="paid-btn">' + (item.paid ? 'Paid ✓' : 'Paid') + '</button>' +
+            '<button class="del" aria-label="Remove ' + item.name + '">✕</button>' +
+          '</div>';
         row.querySelector('.name').textContent = item.name;
+        row.querySelector('.due').textContent = dueLabel;
         row.querySelector('.amt').textContent = fmt(item.amount);
+        row.querySelector('.paid-btn').addEventListener('click', function(){
+          item.paid = !item.paid;
+          save(); render();
+        });
         row.querySelector('.del').addEventListener('click', function(){
+          if(item.paid){
+            state.paidArchiveTotal = (state.paidArchiveTotal || 0) + item.amount;
+          }
           state.items = state.items.filter(function(i){ return i.id !== item.id; });
           save(); render();
         });
@@ -1165,14 +1258,17 @@
   var todayDate = new Date();
   var calView = { year: todayDate.getFullYear(), month: todayDate.getMonth() };
   var yearView = { year: todayDate.getFullYear() };
+  var weekView = { start: getWeekStart(todayDate) };
   var selectedDate = fmtDateKey(todayDate);
   var activeTab = 'daily';
 
   // tabs
   var tabDailyBtn = document.getElementById('tabDailyBtn');
+  var tabWeeklyBtn = document.getElementById('tabWeeklyBtn');
   var tabMonthlyBtn = document.getElementById('tabMonthlyBtn');
   var tabYearlyBtn = document.getElementById('tabYearlyBtn');
   var panelDaily = document.getElementById('panelDaily');
+  var panelWeekly = document.getElementById('panelWeekly');
   var panelMonthly = document.getElementById('panelMonthly');
   var panelYearly = document.getElementById('panelYearly');
 
@@ -1187,6 +1283,15 @@
   var nextMonthBtn = document.getElementById('nextMonth');
   var dayList = document.getElementById('dayList');
   var addSpendBtn = document.getElementById('addSpendBtn');
+
+  // weekly
+  var weekCap = document.getElementById('weekCap');
+  var weekTotalBig = document.getElementById('weekTotalBig');
+  var weekCompare = document.getElementById('weekCompare');
+  var prevWeekBtn = document.getElementById('prevWeek');
+  var nextWeekBtn = document.getElementById('nextWeek');
+  var weeklyBarChart = document.getElementById('weeklyBarChart');
+  var weekTopCats = document.getElementById('weekTopCats');
 
   // monthly
   var monthCap = document.getElementById('monthCap');
@@ -1217,6 +1322,16 @@
 
   function pad2(n){ return n < 10 ? '0'+n : ''+n; }
   function fmtDateKey(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+  function getWeekStart(d){
+    var s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    s.setDate(s.getDate() - s.getDay()); // back up to Sunday
+    return s;
+  }
+  function addDays(d, n){
+    var r = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    r.setDate(r.getDate() + n);
+    return r;
+  }
 
   function loadSpend(){
     try{
@@ -1243,14 +1358,17 @@
   function switchTab(tab){
     activeTab = tab;
     tabDailyBtn.classList.toggle('active', tab==='daily');
+    tabWeeklyBtn.classList.toggle('active', tab==='weekly');
     tabMonthlyBtn.classList.toggle('active', tab==='monthly');
     tabYearlyBtn.classList.toggle('active', tab==='yearly');
     panelDaily.classList.toggle('active', tab==='daily');
+    panelWeekly.classList.toggle('active', tab==='weekly');
     panelMonthly.classList.toggle('active', tab==='monthly');
     panelYearly.classList.toggle('active', tab==='yearly');
     renderAll();
   }
   tabDailyBtn.addEventListener('click', function(){ switchTab('daily'); });
+  tabWeeklyBtn.addEventListener('click', function(){ switchTab('weekly'); });
   tabMonthlyBtn.addEventListener('click', function(){ switchTab('monthly'); });
   tabYearlyBtn.addEventListener('click', function(){ switchTab('yearly'); });
 
@@ -1309,6 +1427,13 @@
   }
   prevYearBtn.addEventListener('click', function(){ navigateYear(-1); });
   nextYearBtn.addEventListener('click', function(){ navigateYear(1); });
+
+  function navigateWeek(delta){
+    weekView.start = addDays(weekView.start, delta*7);
+    renderWeekly();
+  }
+  prevWeekBtn.addEventListener('click', function(){ navigateWeek(-1); });
+  nextWeekBtn.addEventListener('click', function(){ navigateWeek(1); });
 
   calToggleBtn.addEventListener('click', function(){
     var hidden = calCard.hasAttribute('hidden');
@@ -1434,6 +1559,77 @@
     });
   }
 
+  var WEEKDAY_LETTERS = ['S','M','T','W','T','F','S'];
+
+  function weekTotalFor(startDate){
+    var sum = 0;
+    for(var i=0;i<7;i++){
+      var key = fmtDateKey(addDays(startDate, i));
+      sum += (spendState[key]||[]).reduce(function(s,e){ return s+e.amount; },0);
+    }
+    return sum;
+  }
+
+  function renderWeekly(){
+    var start = weekView.start;
+    var end = addDays(start, 6);
+    var todayKey = fmtDateKey(todayDate);
+    var startKey = fmtDateKey(start);
+    var endKey = fmtDateKey(end);
+    var isCurrentWeek = (todayKey >= startKey && todayKey <= endKey);
+
+    var sameMonth = start.getMonth() === end.getMonth();
+    var rangeLabel = sameMonth
+      ? (MONTH_SHORT[start.getMonth()] + ' ' + start.getDate() + '–' + end.getDate())
+      : (MONTH_SHORT[start.getMonth()] + ' ' + start.getDate() + ' – ' + MONTH_SHORT[end.getMonth()] + ' ' + end.getDate());
+    weekCap.textContent = (isCurrentWeek ? 'This week · ' : '') + rangeLabel;
+
+    var total = weekTotalFor(start);
+    weekTotalBig.textContent = fmt(total);
+    weekTotalBig.className = 'big' + (total < 0 ? ' negative' : '');
+
+    var prevStart = addDays(start, -7);
+    var prevTotal = weekTotalFor(prevStart);
+
+    if(total === 0 && prevTotal === 0){
+      weekCompare.textContent = 'No spending logged yet';
+      weekCompare.className = 'compare flat';
+    } else if(prevTotal === 0){
+      weekCompare.textContent = 'New spending vs last week';
+      weekCompare.className = 'compare flat';
+    } else {
+      var pct = Math.round(((total - prevTotal) / prevTotal) * 100);
+      if(pct === 0){
+        weekCompare.textContent = 'Same as last week';
+        weekCompare.className = 'compare flat';
+      } else if(pct > 0){
+        weekCompare.textContent = '▲ ' + pct + '% from last week';
+        weekCompare.className = 'compare up';
+      } else {
+        weekCompare.textContent = '▼ ' + Math.abs(pct) + '% from last week';
+        weekCompare.className = 'compare down';
+      }
+    }
+
+    var barValues = [];
+    var weekKeys = [];
+    for(var i=0;i<7;i++){
+      var d = addDays(start, i);
+      var key = fmtDateKey(d);
+      weekKeys.push(key);
+      var val = (spendState[key]||[]).reduce(function(s,e){ return s+e.amount; },0);
+      barValues.push({
+        value: val,
+        label: WEEKDAY_LETTERS[d.getDay()],
+        showTick: true,
+        title: MONTH_SHORT[d.getMonth()] + ' ' + d.getDate() + ': ' + fmt(val)
+      });
+    }
+    renderBarChart(weeklyBarChart, barValues);
+
+    renderTopCats(weekTopCats, weekKeys, 5);
+  }
+
   function renderMonthly(){
     monthCap.textContent = MONTH_NAMES[calView.month] + ' ' + calView.year;
     var monthPrefix = calView.year + '-' + pad2(calView.month+1);
@@ -1521,6 +1717,7 @@
 
   function renderAll(){
     renderDaily();
+    renderWeekly();
     renderMonthly();
     renderYearly();
   }
