@@ -1038,6 +1038,37 @@
     cursor:pointer;
     vertical-align:middle;
   }
+  .note-chk-line{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:3px 0;
+  }
+  .note-chk-line .note-chk{ margin:0; flex:none; }
+  .note-chk-text{
+    flex:1;
+    min-width:6px;
+    outline:none;
+    word-break:break-word;
+  }
+  .note-chk-text:empty::before{
+    content:'List item…';
+    color:var(--ink-faint);
+  }
+  .note-chk-line.done .note-chk-text{
+    color:var(--ink-faint);
+    text-decoration:line-through;
+  }
+  .note-chk-del{
+    flex:none;
+    background:none; border:none;
+    color:var(--ink-faint);
+    font-size:14px;
+    cursor:pointer;
+    padding:2px 4px;
+    line-height:1;
+  }
+  .note-chk-del:hover{ color:var(--coral); }
 
   .note-content-input{
     flex:1;
@@ -1798,8 +1829,52 @@
   function checklistToInlineHtml(items){
     return (items || []).map(function(item){
       var checkedAttr = item.done ? ' checked' : '';
-      return '<div><span class="note-chk" contenteditable="false"><input type="checkbox"' + checkedAttr + '></span>&nbsp;' + escapeHtml(item.text || '') + '</div>';
+      var doneClass = item.done ? ' done' : '';
+      return '<div class="note-chk-line' + doneClass + '"><span class="note-chk" contenteditable="false"><input type="checkbox"' + checkedAttr + '></span><span class="note-chk-text">' + escapeHtml(item.text || '') + '</span><button type="button" class="note-chk-del" contenteditable="false" aria-label="Remove check box">✕</button></div>';
     }).join('');
+  }
+
+  function insertCheckboxLine(){
+    restoreNoteSelection();
+    var sel = window.getSelection();
+    if(!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    range.deleteContents();
+
+    var line = document.createElement('div');
+    line.className = 'note-chk-line';
+
+    var chkSpan = document.createElement('span');
+    chkSpan.className = 'note-chk';
+    chkSpan.setAttribute('contenteditable', 'false');
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    chkSpan.appendChild(checkbox);
+
+    var textSpan = document.createElement('span');
+    textSpan.className = 'note-chk-text';
+
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'note-chk-del';
+    delBtn.setAttribute('contenteditable', 'false');
+    delBtn.setAttribute('aria-label', 'Remove check box');
+    delBtn.textContent = '✕';
+
+    line.appendChild(chkSpan);
+    line.appendChild(textSpan);
+    line.appendChild(delBtn);
+
+    range.insertNode(line);
+
+    var newRange = document.createRange();
+    newRange.setStart(textSpan, 0);
+    newRange.setEnd(textSpan, 0);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    noteSavedRange = newRange.cloneRange();
+
+    scheduleNoteSave();
   }
 
   var STICKY_COLORS = ['#fde27a','#ffc9de','#b9e6c9','#bcdcff','#ffd3a6','#e3d1ff'];
@@ -1940,16 +2015,26 @@
   });
   noteChecklistBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
   noteChecklistBtn.addEventListener('click', function(){
-    restoreNoteSelection();
-    try{ document.execCommand('insertHTML', false, '<span class="note-chk" contenteditable="false"><input type="checkbox"></span>&nbsp;'); }catch(e){}
-    noteSavedRange = window.getSelection().rangeCount ? window.getSelection().getRangeAt(0).cloneRange() : null;
-    scheduleNoteSave();
+    insertCheckboxLine();
   });
   noteContentInput.addEventListener('change', function(e){
     if(e.target && e.target.type === 'checkbox'){
-      if(e.target.checked){ e.target.setAttribute('checked','checked'); }
-      else{ e.target.removeAttribute('checked'); }
+      var line = e.target.closest ? e.target.closest('.note-chk-line') : null;
+      if(e.target.checked){
+        e.target.setAttribute('checked', 'checked');
+        if(line) line.classList.add('done');
+      } else {
+        e.target.removeAttribute('checked');
+        if(line) line.classList.remove('done');
+      }
       scheduleNoteSave();
+    }
+  });
+  noteContentInput.addEventListener('click', function(e){
+    var delBtn = e.target && e.target.closest ? e.target.closest('.note-chk-del') : null;
+    if(delBtn){
+      var line = delBtn.closest('.note-chk-line');
+      if(line){ line.remove(); scheduleNoteSave(); }
     }
   });
   noteCloseBtn.addEventListener('click', function(){
