@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.azrieyusof71.twa",
+        "sha256_cert_fingerprints": ["30:89:E3:59:B4:5A:A1:3C:02:BD:78:6F:56:80:A7:8C:C0:9C:C1:CB:2F:96:E1:2E:01:EA:5E:B8:94:51:FC:EE"]
+      }
+    }]
