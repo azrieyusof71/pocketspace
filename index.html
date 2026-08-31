@@ -1632,41 +1632,45 @@
 
   function startSignIn(){
     if(!fbAuth) return;
-    setSyncStatus('Opening sign-in…');
+    setSyncStatus('Opening Google sign-in…');
     fbAuth.signInWithRedirect(googleProvider).catch(function(err){
-      setSyncStatus('Sign-in failed: ' + err.message);
+      setSyncStatus('Sign-in failed: ' + (err && err.message ? err.message : err));
     });
   }
 
-  function renderSyncUI(){
+  function renderSyncUI(pendingMsg){
     if(!syncCardBody) return;
     if(currentUser){
       syncCardBody.innerHTML =
-        '<p>Signed in as <strong></strong></p>' +
+        '<p>✅ Signed in as <strong></strong></p>' +
         '<div class="backup-actions"><button id="signOutBtn" type="button">Sign out</button></div>' +
         '<div class="backup-note" id="syncStatus"></div>';
       syncCardBody.querySelector('strong').textContent = currentUser.email || currentUser.displayName || 'your account';
       document.getElementById('signOutBtn').addEventListener('click', function(){
         fbAuth.signOut();
       });
+      setSyncStatus(pendingMsg || 'Signed in');
     } else {
       syncCardBody.innerHTML =
         '<p>Sign in with Google to save your data to the cloud and access it on other devices.</p>' +
         '<div class="backup-actions"><button id="signInBtn" type="button" class="primary">Sign in with Google</button></div>' +
         '<div class="backup-note" id="syncStatus"></div>';
       document.getElementById('signInBtn').addEventListener('click', startSignIn);
+      if(pendingMsg) setSyncStatus(pendingMsg);
     }
   }
 
   function pushToCloud(){
     if(!currentUser || !fbDb) return;
     setSyncStatus('Syncing…');
-    fbDb.collection('users').doc(currentUser.uid).set({
+    var payload = {
       state: state,
       spendState: spendState,
       themeState: themeState,
       updatedAt: new Date().toISOString()
-    }).then(function(){
+    };
+    justPushedJSON = JSON.stringify(payload);
+    fbDb.collection('users').doc(currentUser.uid).set(payload).then(function(){
       setSyncStatus('Synced');
     }).catch(function(err){
       setSyncStatus('Sync failed: ' + err.message);
@@ -1679,10 +1683,37 @@
     cloudPushTimer = setTimeout(pushToCloud, 800);
   }
 
+  var cloudUnsubscribe = null;
+  var lastAppliedRemoteJSON = null;
+  var justPushedJSON = null;
+
+  function applyCloudData(data){
+    var snapshotJSON = JSON.stringify(data);
+    if(snapshotJSON === lastAppliedRemoteJSON) return; // already showing this
+    if(snapshotJSON === justPushedJSON) { lastAppliedRemoteJSON = snapshotJSON; return; } // it's just our own write echoing back
+    lastAppliedRemoteJSON = snapshotJSON;
+    if(data.state){ state = data.state; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+    if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
+    if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
+    if(document.activeElement !== totalInput) totalInput.value = state.total || '';
+    render(); renderAll();
+  }
+
+  function startRealtimeSync(user){
+    if(cloudUnsubscribe) { cloudUnsubscribe(); cloudUnsubscribe = null; }
+    cloudUnsubscribe = fbDb.collection('users').doc(user.uid).onSnapshot(function(doc){
+      if(!doc.exists) return;
+      applyCloudData(doc.data() || {});
+      setSyncStatus('Synced just now');
+    }, function(err){
+      setSyncStatus('Sync connection lost: ' + (err && err.message ? err.message : err));
+    });
+  }
+
   function pullFromCloud(user){
     setSyncStatus('Syncing…');
     fbDb.collection('users').doc(user.uid).get().then(function(doc){
-      if(!doc.exists){ pushToCloud(); return; }
+      if(!doc.exists){ pushToCloud(); startRealtimeSync(user); return; }
       var data = doc.data() || {};
       var localHasData = (state.items && state.items.length) || (state.total) || Object.keys(spendState).length;
       var cloudHasData = (data.state && ((data.state.items && data.state.items.length) || data.state.total)) || (data.spendState && Object.keys(data.spendState).length);
@@ -1691,6 +1722,7 @@
         useCloud = window.confirm('You have data both on this device and in the cloud. Load the cloud version?\n\nOK = use cloud data\nCancel = keep this device\'s data (and upload it to the cloud)');
       }
       if(useCloud && (data.state || data.spendState || data.themeState)){
+        lastAppliedRemoteJSON = JSON.stringify(data);
         if(data.state){ state = data.state; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
         if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
         if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
@@ -1700,23 +1732,36 @@
       } else {
         pushToCloud();
       }
+      startRealtimeSync(user);
     }).catch(function(err){
       setSyncStatus('Sync failed: ' + err.message);
     });
   }
 
   if(fbAuth){
-    fbAuth.getRedirectResult().catch(function(err){
-      if(err && err.message) setSyncStatus('Sign-in failed: ' + err.message);
+    try{ fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){}
+    renderSyncUI('Checking sign-in status…');
+    fbAuth.getRedirectResult().then(function(result){
+      if(result && result.user){
+        currentUser = result.user;
+        renderSyncUI('Signed in! Syncing your data…');
+      }
+    }).catch(function(err){
+      renderSyncUI('Sign-in failed: ' + (err && err.message ? err.message : err));
     });
     fbAuth.onAuthStateChanged(function(user){
       currentUser = user;
       renderSyncUI();
-      if(user) pullFromCloud(user);
+      if(user){
+        pullFromCloud(user);
+      } else if(cloudUnsubscribe){
+        cloudUnsubscribe();
+        cloudUnsubscribe = null;
+      }
     });
   } else {
     renderSyncUI();
-    setSyncStatus('Cloud sync unavailable.');
+    setSyncStatus('Cloud sync unavailable — check your internet connection and reload.');
   }
 })();
 </script>
