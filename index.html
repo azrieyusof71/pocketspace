@@ -2006,6 +2006,38 @@
   }
   noteTitleInput.addEventListener('input', scheduleNoteSave);
   noteContentInput.addEventListener('input', scheduleNoteSave);
+  noteContentInput.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || e.shiftKey) return;
+    var sel = window.getSelection();
+    if(!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var startNode = range.startContainer;
+    var startEl = startNode.nodeType === 1 ? startNode : startNode.parentNode;
+    var chkLine = startEl && startEl.closest ? startEl.closest('.note-chk-line') : null;
+    if(!chkLine) return;
+    var textSpan = chkLine.querySelector('.note-chk-text');
+    if(!textSpan || !textSpan.contains(startNode)) return;
+    e.preventDefault();
+    if(!range.collapsed) range.deleteContents();
+    var afterRange = document.createRange();
+    afterRange.setStart(range.startContainer, range.startOffset);
+    afterRange.setEnd(textSpan, textSpan.childNodes.length);
+    var afterFrag = afterRange.extractContents();
+    var newLine = document.createElement('div');
+    if(afterFrag.textContent.length){
+      newLine.appendChild(afterFrag);
+    } else {
+      newLine.appendChild(document.createElement('br'));
+    }
+    chkLine.parentNode.insertBefore(newLine, chkLine.nextSibling);
+    var newRange = document.createRange();
+    newRange.setStart(newLine, 0);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    noteSavedRange = newRange.cloneRange();
+    scheduleNoteSave();
+  });
   noteBoldBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
   noteBoldBtn.addEventListener('click', function(){
     restoreNoteSelection();
