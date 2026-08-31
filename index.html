@@ -31,6 +31,7 @@
     --gold-deep:#8f6526;
     --mint:#2f6e63;
     --coral:#c8492f;
+    --save:#3d6fa8;
     --ring-empty:#e9e2d1;
     --shadow:0 1px 2px rgba(28,26,21,.06), 0 12px 28px -16px rgba(28,26,21,.25);
     --accent-glow: radial-gradient(circle at 30% 20%, rgba(184,135,58,.16), transparent 60%);
@@ -47,6 +48,7 @@
       --gold-deep:#e6bb78;
       --mint:#5fae9e;
       --coral:#e2735a;
+      --save:#7aa8dc;
       --ring-empty:#2c2619;
       --shadow:0 1px 2px rgba(0,0,0,.4), 0 20px 40px -20px rgba(0,0,0,.7);
       --accent-glow: radial-gradient(circle at 30% 20%, rgba(217,167,90,.10), transparent 60%);
@@ -63,6 +65,7 @@
     --gold-deep:#ffffff;
     --mint:#9c9c9c;
     --coral:#e2735a;
+    --save:#c9c9c9;
     --ring-empty:#292929;
     --shadow:0 1px 2px rgba(0,0,0,.5), 0 20px 40px -20px rgba(0,0,0,.8);
     --accent-glow: radial-gradient(circle at 30% 20%, rgba(255,255,255,.06), transparent 60%);
@@ -78,6 +81,7 @@
     --gold-deep:#0e7490;
     --mint:#0d9488;
     --coral:#dc5a4e;
+    --save:#3a5fae;
     --ring-empty:#dcedf1;
     --shadow:0 1px 2px rgba(15,53,64,.06), 0 12px 28px -16px rgba(15,53,64,.18);
     --accent-glow: radial-gradient(circle at 30% 20%, rgba(8,145,178,.14), transparent 60%);
@@ -93,6 +97,7 @@
     --gold-deep: color-mix(in srgb, var(--gold) 78%, black);
     --mint: color-mix(in srgb, var(--gold) 55%, var(--ink));
     --coral:#c8492f;
+    --save: color-mix(in srgb, var(--gold) 35%, var(--ink));
     --ring-empty: color-mix(in srgb, var(--ink) 11%, var(--paper));
     --shadow:0 1px 2px rgba(0,0,0,.08), 0 12px 28px -16px rgba(0,0,0,.3);
     --accent-glow: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 60%);
@@ -383,6 +388,51 @@
     border-radius:6px;
   }
   .item .del:hover{ color:var(--coral); }
+
+  #savingsList{ display:flex; flex-direction:column; gap:9px; }
+  .save-item{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:12px 14px;
+  }
+  .save-item .save-top{
+    display:flex; align-items:center; gap:12px;
+  }
+  .save-item .save-info{ flex:1; min-width:0; }
+  .save-item .save-name{ font-size:14.5px; font-weight:600; }
+  .save-item .save-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; font-variant-numeric:tabular-nums; }
+  .save-item .save-sub.done{ color:var(--save); font-weight:600; }
+  .save-item .save-amt{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:14.5px; font-weight:600; white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+  .save-item .row-actions{ display:flex; align-items:center; gap:6px; flex:none; }
+  .save-item .add-save-btn{
+    font-family:inherit;
+    font-size:12px; font-weight:600;
+    padding:6px 10px; cursor:pointer;
+    border-radius:8px; white-space:nowrap;
+    background:var(--save); border:1px solid var(--save); color:var(--paper-raised);
+  }
+  .save-item .del{
+    background:none;border:none;color:var(--ink-faint);
+    font-size:16px; padding:4px 4px; cursor:pointer;
+    border-radius:6px;
+  }
+  .save-item .del:hover{ color:var(--coral); }
+  .save-bar-track{
+    margin-top:10px;
+    height:8px; border-radius:5px;
+    background:var(--ring-empty);
+    overflow:hidden;
+  }
+  .save-bar-fill{
+    height:100%; border-radius:5px;
+    background:var(--save);
+    transition:width 200ms ease;
+  }
   .empty{
     text-align:center;
     color:var(--ink-soft);
@@ -711,6 +761,14 @@
 
   <div>
     <div class="list-header">
+      <h2>Savings</h2>
+      <button id="addSaveGoalBtn" aria-label="Add savings goal">+</button>
+    </div>
+    <div id="savingsList" style="margin-top:12px;"></div>
+  </div>
+
+  <div>
+    <div class="list-header">
       <h2>Payments</h2>
       <button id="addBtn" aria-label="Add payment">+</button>
     </div>
@@ -961,6 +1019,38 @@
   </div>
 </div>
 
+<div class="overlay" id="saveGoalOverlay">
+  <div class="sheet">
+    <h3>Add a savings goal</h3>
+    <div class="field">
+      <label>What for</label>
+      <input id="saveGoalNameInput" type="text" placeholder="New phone, Trip, Emergency fund…" maxlength="24">
+    </div>
+    <div class="field">
+      <label>Target amount</label>
+      <input id="saveGoalTargetInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
+    </div>
+    <div class="sheet-actions">
+      <button id="saveGoalCancelBtn" type="button">Cancel</button>
+      <button id="saveGoalSaveBtn" type="button">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="saveAddOverlay">
+  <div class="sheet">
+    <h3 id="saveAddTitle">Add to savings</h3>
+    <div class="field">
+      <label>Amount</label>
+      <input id="saveAddAmountInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
+    </div>
+    <div class="sheet-actions">
+      <button id="saveAddCancelBtn" type="button">Cancel</button>
+      <button id="saveAddSaveBtn" type="button">Add</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   /* ================= theme ================= */
@@ -1045,6 +1135,8 @@
   function getColors(){ return themeState.mode === 'dark' ? COLORS_MONO : COLORS_DEFAULT; }
 
   var state = load();
+  if(!state.savings) state.savings = [];
+  if(!state.savingsArchiveTotal) state.savingsArchiveTotal = 0;
 
   var SPEND_KEY = 'money-circle-spending-v1';
   var spendState = loadSpend();
@@ -1063,10 +1155,62 @@
   var cancelBtn = document.getElementById('cancelBtn');
   var saveBtn = document.getElementById('saveBtn');
 
+  var savingsList = document.getElementById('savingsList');
+  var addSaveGoalBtn = document.getElementById('addSaveGoalBtn');
+  var saveGoalOverlay = document.getElementById('saveGoalOverlay');
+  var saveGoalNameInput = document.getElementById('saveGoalNameInput');
+  var saveGoalTargetInput = document.getElementById('saveGoalTargetInput');
+  var saveGoalCancelBtn = document.getElementById('saveGoalCancelBtn');
+  var saveGoalSaveBtn = document.getElementById('saveGoalSaveBtn');
+
+  var saveAddOverlay = document.getElementById('saveAddOverlay');
+  var saveAddTitle = document.getElementById('saveAddTitle');
+  var saveAddAmountInput = document.getElementById('saveAddAmountInput');
+  var saveAddCancelBtn = document.getElementById('saveAddCancelBtn');
+  var saveAddSaveBtn = document.getElementById('saveAddSaveBtn');
+  var saveAddTargetId = null;
+
+  addSaveGoalBtn.addEventListener('click', function(){
+    saveGoalNameInput.value = '';
+    saveGoalTargetInput.value = '';
+    saveGoalOverlay.classList.add('open');
+    setTimeout(function(){ saveGoalNameInput.focus(); }, 50);
+  });
+  saveGoalCancelBtn.addEventListener('click', function(){ saveGoalOverlay.classList.remove('open'); });
+  saveGoalOverlay.addEventListener('click', function(e){ if(e.target === saveGoalOverlay) saveGoalOverlay.classList.remove('open'); });
+  saveGoalSaveBtn.addEventListener('click', function(){
+    var name = (saveGoalNameInput.value || '').trim();
+    var target = round2(parseFloat(saveGoalTargetInput.value));
+    if(!name){ saveGoalNameInput.focus(); return; }
+    if(!target || target <= 0){ saveGoalTargetInput.focus(); return; }
+    state.savings.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, target: target, saved: 0 });
+    save(); render();
+    saveGoalOverlay.classList.remove('open');
+  });
+
+  saveAddCancelBtn.addEventListener('click', function(){ saveAddOverlay.classList.remove('open'); saveAddTargetId = null; });
+  saveAddOverlay.addEventListener('click', function(e){ if(e.target === saveAddOverlay){ saveAddOverlay.classList.remove('open'); saveAddTargetId = null; } });
+  saveAddSaveBtn.addEventListener('click', function(){
+    var amt = round2(parseFloat(saveAddAmountInput.value));
+    if(!amt || amt <= 0){ saveAddAmountInput.focus(); return; }
+    var goal = state.savings.filter(function(g){ return g.id === saveAddTargetId; })[0];
+    if(!goal){ saveAddOverlay.classList.remove('open'); return; }
+    goal.saved = round2((goal.saved || 0) + amt);
+    save(); render();
+    saveAddOverlay.classList.remove('open');
+    saveAddTargetId = null;
+  });
+
+  if(state.total){ state.total = round2(state.total); }
   totalInput.value = state.total || '';
 
   totalInput.addEventListener('input', function(){
     state.total = parseFloat(totalInput.value) || 0;
+    save(); render(); renderYearly();
+  });
+  totalInput.addEventListener('blur', function(){
+    state.total = round2(parseFloat(totalInput.value) || 0);
+    totalInput.value = state.total || '';
     save(); render(); renderYearly();
   });
 
@@ -1086,7 +1230,7 @@
   addMoneySaveBtn.addEventListener('click', function(){
     var amt = parseFloat(addMoneyAmountInput.value);
     if(!amt || amt <= 0){ addMoneyAmountInput.focus(); return; }
-    state.total = (state.total || 0) + amt;
+    state.total = round2((state.total || 0) + amt);
     totalInput.value = state.total;
     save(); render(); renderYearly();
     addMoneyOverlay.classList.remove('open');
@@ -1120,6 +1264,10 @@
     return '$' + s;
   }
 
+  function round2(n){
+    return Math.round((n||0)*100)/100;
+  }
+
   function spendGrandTotal(){
     var sum = 0;
     Object.keys(spendState).forEach(function(k){
@@ -1148,22 +1296,24 @@
   }
 
   function render(){
-    var total = state.total || 0;
+    var total = round2(state.total || 0);
     var items = state.items || [];
+    var savings = state.savings || [];
     var paidTotal = items.reduce(function(s,i){ return s + (i.paid ? i.amount : 0); }, 0) + (state.paidArchiveTotal || 0);
     var unpaidTotal = items.reduce(function(s,i){ return s + (i.paid ? 0 : i.amount); }, 0);
     var allocated = paidTotal + unpaidTotal;
+    var savingsTotal = round2(savings.reduce(function(s,g){ return s + (g.saved || 0); }, 0) + (state.savingsArchiveTotal || 0));
     var spent = spendGrandTotal();
-    var leftOver = total - paidTotal - spent;
+    var leftOver = round2(total - paidTotal - spent - savingsTotal);
 
     allocatedStat.textContent = fmt(allocated);
-    pctStat.textContent = total > 0 ? Math.round(((paidTotal+spent)/total)*100) + '%' : '0%';
+    pctStat.textContent = total > 0 ? Math.round(((paidTotal+spent+savingsTotal)/total)*100) + '%' : '0%';
     leftAmount.textContent = fmt(leftOver);
     leftAmount.className = 'amount' + (leftOver < 0 ? ' negative' : '');
 
     var stops = [];
     var cursor = 0;
-    var basis = total > 0 ? Math.max(total, allocated+spent) : Math.max(allocated+spent, 1);
+    var basis = total > 0 ? Math.max(total, allocated+spent+savingsTotal) : Math.max(allocated+spent+savingsTotal, 1);
     var COLORS = getColors();
 
     items.forEach(function(item, idx){
@@ -1179,6 +1329,12 @@
       var archiveDeg = archiveFrac * 360;
       stops.push('var(--gold-deep) ' + cursor.toFixed(3) + 'deg ' + (cursor+archiveDeg).toFixed(3) + 'deg');
       cursor += archiveDeg;
+    }
+    if(savingsTotal > 0){
+      var savingsFrac = basis > 0 ? savingsTotal / basis : 0;
+      var savingsDeg = savingsFrac * 360;
+      stops.push('var(--save) ' + cursor.toFixed(3) + 'deg ' + (cursor+savingsDeg).toFixed(3) + 'deg');
+      cursor += savingsDeg;
     }
     if(spent > 0){
       var spentFrac = basis > 0 ? spent / basis : 0;
@@ -1197,6 +1353,51 @@
       stops.push(leftColor + ' ' + cursor.toFixed(3) + 'deg 360deg');
     }
     pie.style.background = stops.length ? ('conic-gradient(' + stops.join(',') + ')') : 'var(--ring-empty)';
+
+    savingsList.innerHTML = '';
+    if(savings.length === 0){
+      var saveEmpty = document.createElement('div');
+      saveEmpty.className = 'empty';
+      saveEmpty.textContent = 'No savings goals yet — tap + to start one, like a trip or a new phone.';
+      savingsList.appendChild(saveEmpty);
+    } else {
+      savings.forEach(function(goal){
+        var saved = round2(goal.saved || 0);
+        var target = goal.target || 0;
+        var pct = target > 0 ? Math.min(100, Math.round((saved/target)*100)) : 0;
+        var remaining = round2(Math.max(0, target - saved));
+        var row = document.createElement('div');
+        row.className = 'save-item';
+        row.innerHTML =
+          '<div class="save-top">' +
+            '<div class="save-info"><div class="save-name"></div><div class="save-sub' + (remaining <= 0 ? ' done' : '') + '"></div></div>' +
+            '<div class="save-amt"></div>' +
+            '<div class="row-actions">' +
+              '<button class="add-save-btn">Add</button>' +
+              '<button class="del" aria-label="Remove ' + goal.name + '">✕</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="save-bar-track"><div class="save-bar-fill" style="width:' + pct + '%"></div></div>';
+        row.querySelector('.save-name').textContent = goal.name;
+        row.querySelector('.save-sub').textContent = remaining <= 0 ? 'Goal reached 🎉' : (pct + '% · ' + fmt(remaining) + ' needed');
+        row.querySelector('.save-amt').textContent = fmt(saved) + ' / ' + fmt(target);
+        row.querySelector('.add-save-btn').addEventListener('click', function(){
+          saveAddTargetId = goal.id;
+          saveAddTitle.textContent = 'Add to "' + goal.name + '"';
+          saveAddAmountInput.value = '';
+          saveAddOverlay.classList.add('open');
+          setTimeout(function(){ saveAddAmountInput.focus(); }, 50);
+        });
+        row.querySelector('.del').addEventListener('click', function(){
+          if(goal.saved){
+            state.savingsArchiveTotal = round2((state.savingsArchiveTotal || 0) + goal.saved);
+          }
+          state.savings = state.savings.filter(function(g){ return g.id !== goal.id; });
+          save(); render();
+        });
+        savingsList.appendChild(row);
+      });
+    }
 
     list.innerHTML = '';
     if(items.length === 0){
@@ -1827,7 +2028,7 @@
     if(snapshotJSON === lastAppliedRemoteJSON) return; // already showing this
     if(snapshotJSON === justPushedJSON) { lastAppliedRemoteJSON = snapshotJSON; return; } // it's just our own write echoing back
     lastAppliedRemoteJSON = snapshotJSON;
-    if(data.state){ state = data.state; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+    if(data.state){ state = data.state; if(state.total){ state.total = round2(state.total); } try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
     if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
     if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
     if(document.activeElement !== totalInput) totalInput.value = state.total || '';
@@ -1858,7 +2059,7 @@
       }
       if(useCloud && (data.state || data.spendState || data.themeState)){
         lastAppliedRemoteJSON = JSON.stringify(data);
-        if(data.state){ state = data.state; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+        if(data.state){ state = data.state; if(state.total){ state.total = round2(state.total); } try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
         if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
         if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
         totalInput.value = state.total || '';
