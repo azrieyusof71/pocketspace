@@ -1633,8 +1633,22 @@
   function startSignIn(){
     if(!fbAuth) return;
     setSyncStatus('Opening Google sign-in…');
-    fbAuth.signInWithRedirect(googleProvider).catch(function(err){
-      setSyncStatus('Sign-in failed: ' + (err && err.message ? err.message : err));
+    fbAuth.signInWithPopup(googleProvider).then(function(result){
+      if(result && result.user){
+        currentUser = result.user;
+        renderSyncUI('Signed in! Syncing your data…');
+      }
+    }).catch(function(err){
+      var code = err && err.code;
+      if(code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment'){
+        // Fall back to redirect if popups don't work in this browser
+        setSyncStatus('Redirecting to Google sign-in…');
+        fbAuth.signInWithRedirect(googleProvider).catch(function(err2){
+          setSyncStatus('Sign-in failed: ' + (err2 && err2.message ? err2.message : err2));
+        });
+      } else {
+        setSyncStatus('Sign-in failed: ' + (err && err.message ? err.message : err));
+      }
     });
   }
 
