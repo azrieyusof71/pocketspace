@@ -416,6 +416,14 @@
     border-radius:8px; white-space:nowrap;
     background:var(--save); border:1px solid var(--save); color:var(--paper-raised);
   }
+  .save-item .sub-save-btn{
+    font-family:inherit;
+    font-size:12px; font-weight:600;
+    padding:6px 10px; cursor:pointer;
+    border-radius:8px; white-space:nowrap;
+    background:none; border:1px solid var(--line); color:var(--ink-soft);
+  }
+  .save-item .sub-save-btn:hover{ border-color:var(--coral); color:var(--coral); }
   .save-item .del{
     background:none;border:none;color:var(--ink-faint);
     font-size:16px; padding:4px 4px; cursor:pointer;
@@ -1169,6 +1177,7 @@
   var saveAddCancelBtn = document.getElementById('saveAddCancelBtn');
   var saveAddSaveBtn = document.getElementById('saveAddSaveBtn');
   var saveAddTargetId = null;
+  var saveAddMode = 'add';
 
   addSaveGoalBtn.addEventListener('click', function(){
     saveGoalNameInput.value = '';
@@ -1195,10 +1204,15 @@
     if(!amt || amt <= 0){ saveAddAmountInput.focus(); return; }
     var goal = state.savings.filter(function(g){ return g.id === saveAddTargetId; })[0];
     if(!goal){ saveAddOverlay.classList.remove('open'); return; }
-    goal.saved = round2((goal.saved || 0) + amt);
+    if(saveAddMode === 'subtract'){
+      goal.saved = round2(Math.max(0, (goal.saved || 0) - amt));
+    } else {
+      goal.saved = round2((goal.saved || 0) + amt);
+    }
     save(); render();
     saveAddOverlay.classList.remove('open');
     saveAddTargetId = null;
+    saveAddMode = 'add';
   });
 
   if(state.total){ state.total = round2(state.total); }
@@ -1373,6 +1387,7 @@
             '<div class="save-info"><div class="save-name"></div><div class="save-sub' + (remaining <= 0 ? ' done' : '') + '"></div></div>' +
             '<div class="save-amt"></div>' +
             '<div class="row-actions">' +
+              '<button class="sub-save-btn" aria-label="Take money out of ' + goal.name + '">−</button>' +
               '<button class="add-save-btn">Add</button>' +
               '<button class="del" aria-label="Remove ' + goal.name + '">✕</button>' +
             '</div>' +
@@ -1383,7 +1398,18 @@
         row.querySelector('.save-amt').textContent = fmt(saved) + ' / ' + fmt(target);
         row.querySelector('.add-save-btn').addEventListener('click', function(){
           saveAddTargetId = goal.id;
+          saveAddMode = 'add';
           saveAddTitle.textContent = 'Add to "' + goal.name + '"';
+          saveAddSaveBtn.textContent = 'Add';
+          saveAddAmountInput.value = '';
+          saveAddOverlay.classList.add('open');
+          setTimeout(function(){ saveAddAmountInput.focus(); }, 50);
+        });
+        row.querySelector('.sub-save-btn').addEventListener('click', function(){
+          saveAddTargetId = goal.id;
+          saveAddMode = 'subtract';
+          saveAddTitle.textContent = 'Take out of "' + goal.name + '" (saved so far: ' + fmt(saved) + ')';
+          saveAddSaveBtn.textContent = 'Take out';
           saveAddAmountInput.value = '';
           saveAddOverlay.classList.add('open');
           setTimeout(function(){ saveAddAmountInput.focus(); }, 50);
