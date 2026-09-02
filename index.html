@@ -35,6 +35,10 @@
     --ring-empty:#e9e2d1;
     --shadow:0 1px 2px rgba(28,26,21,.06), 0 12px 28px -16px rgba(28,26,21,.25);
     --accent-glow: radial-gradient(circle at 30% 20%, rgba(184,135,58,.16), transparent 60%);
+    --toolbar-bg:rgba(24,21,15,.94);
+    --toolbar-fg:#f3ede0;
+    --toolbar-fg-dim:#a89f8c;
+    --toolbar-shadow:0 10px 26px -10px rgba(0,0,0,.55), 0 2px 10px rgba(0,0,0,.3);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -945,6 +949,7 @@
 
   .note-editor-overlay{ align-items:center; padding:0 14px; }
   .note-paper{
+    position:relative;
     width:100%; max-width:460px;
     height:min(680px, 88vh);
     background:var(--paper-raised);
@@ -982,24 +987,46 @@
   .note-close-btn:hover{ color:var(--coral); border-color:var(--coral); }
 
   .note-toolbar{
-    display:flex; align-items:center; gap:8px;
-    padding:8px 14px;
-    border-bottom:1px solid var(--line);
-    flex:none;
+    position:absolute;
+    left:50%;
+    bottom:52px;
+    transform:translateX(-50%);
+    display:flex; align-items:center; gap:2px;
+    padding:5px;
+    max-width:calc(100% - 28px);
+    overflow-x:auto;
+    background:var(--toolbar-bg);
+    -webkit-backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);
+    border-radius:999px;
+    box-shadow:var(--toolbar-shadow);
+    z-index:5;
+    scrollbar-width:none;
   }
+  .note-toolbar::-webkit-scrollbar{ display:none; }
   .note-tool-btn{
-    background:var(--paper);
-    border:1px solid var(--line);
-    border-radius:8px;
-    color:var(--ink);
-    font-size:13px;
-    padding:6px 10px;
+    flex:none;
+    width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center;
+    background:none;
+    border:none;
+    border-radius:50%;
+    color:var(--toolbar-fg);
+    font-size:15px;
     cursor:pointer;
     font-family:"IBM Plex Sans", sans-serif;
+    transition:background .12s ease;
   }
-  .note-tool-btn:hover{ border-color:var(--gold); }
-  .note-tool-btn.active{ background:var(--gold); color:var(--paper); border-color:var(--gold); }
+  .note-tool-btn:hover{ background:rgba(255,255,255,.14); }
+  .note-tool-btn:active{ background:rgba(255,255,255,.22); }
+  .note-tool-btn.active{ background:var(--gold); color:#1c1a15; }
   .note-tool-btn-wide{ white-space:nowrap; }
+  .note-toolbar-divider{
+    flex:none;
+    width:1px; height:18px;
+    background:rgba(255,255,255,.16);
+    margin:0 3px;
+  }
 
   .note-chk{
     display:inline-flex;
@@ -1044,6 +1071,45 @@
   }
   .note-chk-del:hover{ color:var(--coral); }
 
+  .note-table-block{
+    margin:6px 0;
+  }
+  table.note-table{
+    border-collapse:collapse;
+    width:100%;
+    table-layout:fixed;
+  }
+  table.note-table td{
+    border:1px solid var(--line);
+    padding:6px 8px;
+    font-size:14px;
+    min-width:40px;
+    min-height:1.4em;
+    vertical-align:top;
+    word-break:break-word;
+    max-width:0;
+    overflow-x:auto;
+  }
+  .note-table-controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+  }
+  .note-table-btn{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:7px;
+    color:var(--ink-soft);
+    font-size:11.5px;
+    padding:4px 8px;
+    cursor:pointer;
+    font-family:"IBM Plex Sans", sans-serif;
+  }
+  .note-table-btn:hover{ border-color:var(--gold); color:var(--ink); }
+  .note-table-btn-del{ margin-left:auto; }
+  .note-table-btn-del:hover{ border-color:var(--coral); color:var(--coral); }
+
   .note-content-input{
     flex:1;
     border:none; outline:none;
@@ -1052,7 +1118,7 @@
     font-family:"IBM Plex Sans", sans-serif;
     font-size:15px;
     line-height:1.6;
-    padding:14px;
+    padding:14px 14px 62px;
     overflow-y:auto;
   }
   .note-content-input:empty::before{
@@ -1325,13 +1391,33 @@
       <input id="noteTitleInput" type="text" class="note-title-input" placeholder="Title" maxlength="40">
       <button id="noteCloseBtn" type="button" class="note-close-btn" aria-label="Close">✕</button>
     </div>
+    <div id="noteContentInput" class="note-content-input" contenteditable="true" data-placeholder="Write anything…"></div>
     <div class="note-toolbar">
       <button id="noteBoldBtn" type="button" class="note-tool-btn" aria-label="Bold"><b>B</b></button>
-      <button id="noteChecklistBtn" type="button" class="note-tool-btn note-tool-btn-wide">☑ Check box</button>
+      <div class="note-toolbar-divider"></div>
+      <button id="noteChecklistBtn" type="button" class="note-tool-btn" aria-label="Check box">☑</button>
+      <button id="noteTableBtn" type="button" class="note-tool-btn" aria-label="Table">⊞</button>
     </div>
-    <div id="noteContentInput" class="note-content-input" contenteditable="true" data-placeholder="Write anything…"></div>
     <div class="note-paper-footer">
       <button id="noteDeleteBtn" type="button" class="note-delete-btn">Delete this note</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="noteTableOverlay">
+  <div class="sheet">
+    <h3>Insert table</h3>
+    <div class="field">
+      <label>Rows</label>
+      <input id="noteTableRowsInput" type="number" inputmode="numeric" min="1" max="20" step="1" value="3">
+    </div>
+    <div class="field">
+      <label>Columns</label>
+      <input id="noteTableColsInput" type="number" inputmode="numeric" min="1" max="10" step="1" value="3">
+    </div>
+    <div class="sheet-actions">
+      <button id="noteTableCancelBtn" type="button">Cancel</button>
+      <button id="noteTableInsertBtn" type="button">Insert</button>
     </div>
   </div>
 </div>
@@ -1766,6 +1852,12 @@
   var noteDeleteBtn = document.getElementById('noteDeleteBtn');
   var noteBoldBtn = document.getElementById('noteBoldBtn');
   var noteChecklistBtn = document.getElementById('noteChecklistBtn');
+  var noteTableBtn = document.getElementById('noteTableBtn');
+  var noteTableOverlay = document.getElementById('noteTableOverlay');
+  var noteTableRowsInput = document.getElementById('noteTableRowsInput');
+  var noteTableColsInput = document.getElementById('noteTableColsInput');
+  var noteTableCancelBtn = document.getElementById('noteTableCancelBtn');
+  var noteTableInsertBtn = document.getElementById('noteTableInsertBtn');
   var editingNoteId = null;
   var noteSaveTimer = null;
   var noteSavedRange = null;
@@ -1779,7 +1871,19 @@
         noteSavedRange = range.cloneRange();
       }
     }
+    updateBoldButtonState();
   });
+
+  function updateBoldButtonState(){
+    if(!editingNoteId) return;
+    var sel = window.getSelection();
+    var isInNote = sel && sel.rangeCount > 0 && noteContentInput.contains(sel.getRangeAt(0).commonAncestorContainer);
+    var isBold = false;
+    if(isInNote){
+      try{ isBold = document.queryCommandState('bold'); }catch(e){ isBold = false; }
+    }
+    noteBoldBtn.classList.toggle('active', !!isBold);
+  }
 
   function restoreNoteSelection(){
     var sel = window.getSelection();
@@ -1808,13 +1912,7 @@
     }).join('');
   }
 
-  function insertCheckboxLine(){
-    restoreNoteSelection();
-    var sel = window.getSelection();
-    if(!sel.rangeCount) return;
-    var range = sel.getRangeAt(0);
-    range.deleteContents();
-
+  function buildCheckboxLineEl(){
     var line = document.createElement('div');
     line.className = 'note-chk-line';
 
@@ -1838,12 +1936,116 @@
     line.appendChild(chkSpan);
     line.appendChild(textSpan);
     line.appendChild(delBtn);
+    return line;
+  }
 
-    range.insertNode(line);
-
+  function focusCheckboxTextSpan(line){
+    var sel = window.getSelection();
+    var textSpan = line.querySelector('.note-chk-text');
     var newRange = document.createRange();
-    newRange.setStart(textSpan, 0);
-    newRange.setEnd(textSpan, 0);
+    newRange.selectNodeContents(textSpan);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    noteSavedRange = newRange.cloneRange();
+  }
+
+  function insertCheckboxLine(){
+    restoreNoteSelection();
+    var sel = window.getSelection();
+    if(!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+
+    var node = range.startContainer;
+    var startEl = node.nodeType === 1 ? node : node.parentNode;
+    var existingLine = startEl && startEl.closest ? startEl.closest('.note-chk-line') : null;
+
+    if(existingLine && noteContentInput.contains(existingLine)){
+      var existingText = existingLine.querySelector('.note-chk-text');
+      if(existingText && existingText.textContent.trim() === ''){
+        // Cursor is already on an empty check box line — don't stack another one, just focus it.
+        focusCheckboxTextSpan(existingLine);
+        return;
+      }
+      // Cursor is on a check box line that already has text — add the new one right after it.
+      var siblingLine = buildCheckboxLineEl();
+      if(existingLine.nextSibling){
+        existingLine.parentNode.insertBefore(siblingLine, existingLine.nextSibling);
+      } else {
+        existingLine.parentNode.appendChild(siblingLine);
+      }
+      focusCheckboxTextSpan(siblingLine);
+      scheduleNoteSave();
+      return;
+    }
+
+    range.deleteContents();
+    var line = buildCheckboxLineEl();
+    range.insertNode(line);
+    focusCheckboxTextSpan(line);
+    scheduleNoteSave();
+  }
+
+  function buildTableControls(){
+    var controls = document.createElement('div');
+    controls.className = 'note-table-controls';
+    controls.setAttribute('contenteditable', 'false');
+    var buttons = [
+      ['addrow', '+ Row'],
+      ['delrow', '− Row'],
+      ['addcol', '+ Col'],
+      ['delcol', '− Col'],
+      ['removetable', '✕ Remove table']
+    ];
+    buttons.forEach(function(b){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'note-table-btn' + (b[0] === 'removetable' ? ' note-table-btn-del' : '');
+      btn.setAttribute('data-act', b[0]);
+      btn.textContent = b[1];
+      btn.addEventListener('mousedown', function(e){ e.preventDefault(); });
+      controls.appendChild(btn);
+    });
+    return controls;
+  }
+
+  function insertTableBlock(rows, cols){
+    rows = Math.max(1, Math.min(20, rows || 3));
+    cols = Math.max(1, Math.min(10, cols || 3));
+    restoreNoteSelection();
+    var sel = window.getSelection();
+    if(!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    range.deleteContents();
+
+    var wrap = document.createElement('div');
+    wrap.className = 'note-table-block';
+
+    var table = document.createElement('table');
+    table.className = 'note-table';
+    var tbody = document.createElement('tbody');
+    for(var r = 0; r < rows; r++){
+      var tr = document.createElement('tr');
+      for(var c = 0; c < cols; c++){
+        var td = document.createElement('td');
+        td.innerHTML = '<br>';
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    wrap.appendChild(buildTableControls());
+
+    range.insertNode(wrap);
+    var afterLine = document.createElement('div');
+    afterLine.appendChild(document.createElement('br'));
+    wrap.parentNode.insertBefore(afterLine, wrap.nextSibling);
+
+    var firstCell = table.querySelector('td');
+    var newRange = document.createRange();
+    newRange.selectNodeContents(firstCell);
+    newRange.collapse(true);
     sel.removeAllRanges();
     sel.addRange(newRange);
     noteSavedRange = newRange.cloneRange();
@@ -1981,6 +2183,33 @@
   noteTitleInput.addEventListener('input', scheduleNoteSave);
   noteContentInput.addEventListener('input', scheduleNoteSave);
   noteContentInput.addEventListener('keydown', function(e){
+    if(e.key === 'Tab'){
+      var tsel = window.getSelection();
+      if(!tsel.rangeCount) return;
+      var tNode = tsel.getRangeAt(0).startContainer;
+      var tEl = tNode.nodeType === 1 ? tNode : tNode.parentNode;
+      var cell = tEl && tEl.closest ? tEl.closest('td') : null;
+      if(!cell) return;
+      e.preventDefault();
+      var row = cell.parentNode;
+      var cellIndex = Array.prototype.indexOf.call(row.cells, cell);
+      var nextCell;
+      if(!e.shiftKey){
+        nextCell = row.cells[cellIndex + 1];
+        if(!nextCell && row.nextElementSibling) nextCell = row.nextElementSibling.cells[0];
+      } else {
+        nextCell = row.cells[cellIndex - 1];
+        if(!nextCell && row.previousElementSibling) nextCell = row.previousElementSibling.cells[row.previousElementSibling.cells.length - 1];
+      }
+      if(nextCell){
+        var tRange = document.createRange();
+        tRange.selectNodeContents(nextCell);
+        tsel.removeAllRanges();
+        tsel.addRange(tRange);
+        noteSavedRange = tRange.cloneRange();
+      }
+      return;
+    }
     if(e.key !== 'Enter' || e.shiftKey) return;
     var sel = window.getSelection();
     if(!sel.rangeCount) return;
@@ -2017,11 +2246,27 @@
     restoreNoteSelection();
     try{ document.execCommand('bold'); }catch(e){}
     noteSavedRange = window.getSelection().rangeCount ? window.getSelection().getRangeAt(0).cloneRange() : null;
+    updateBoldButtonState();
     scheduleNoteSave();
   });
   noteChecklistBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
   noteChecklistBtn.addEventListener('click', function(){
     insertCheckboxLine();
+  });
+  noteTableBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
+  noteTableBtn.addEventListener('click', function(){
+    noteTableRowsInput.value = 3;
+    noteTableColsInput.value = 3;
+    noteTableOverlay.classList.add('open');
+    setTimeout(function(){ noteTableRowsInput.focus(); }, 50);
+  });
+  noteTableCancelBtn.addEventListener('click', function(){ noteTableOverlay.classList.remove('open'); });
+  noteTableOverlay.addEventListener('click', function(e){ if(e.target === noteTableOverlay) noteTableOverlay.classList.remove('open'); });
+  noteTableInsertBtn.addEventListener('click', function(){
+    var rows = parseInt(noteTableRowsInput.value, 10) || 3;
+    var cols = parseInt(noteTableColsInput.value, 10) || 3;
+    noteTableOverlay.classList.remove('open');
+    insertTableBlock(rows, cols);
   });
   noteContentInput.addEventListener('change', function(e){
     if(e.target && e.target.type === 'checkbox'){
@@ -2041,6 +2286,39 @@
     if(delBtn){
       var line = delBtn.closest('.note-chk-line');
       if(line){ line.remove(); scheduleNoteSave(); }
+      return;
+    }
+    var tableBtn = e.target && e.target.closest ? e.target.closest('.note-table-btn') : null;
+    if(tableBtn){
+      var wrap = tableBtn.closest('.note-table-block');
+      if(!wrap) return;
+      var table = wrap.querySelector('table');
+      var act = tableBtn.getAttribute('data-act');
+      if(act === 'addrow'){
+        var cols = table.rows.length ? table.rows[0].cells.length : 1;
+        var tr = document.createElement('tr');
+        for(var i = 0; i < cols; i++){
+          var td = document.createElement('td');
+          td.innerHTML = '<br>';
+          tr.appendChild(td);
+        }
+        table.querySelector('tbody').appendChild(tr);
+      } else if(act === 'delrow'){
+        if(table.rows.length > 1) table.deleteRow(table.rows.length - 1);
+      } else if(act === 'addcol'){
+        Array.prototype.forEach.call(table.rows, function(row){
+          var td = document.createElement('td');
+          td.innerHTML = '<br>';
+          row.appendChild(td);
+        });
+      } else if(act === 'delcol'){
+        Array.prototype.forEach.call(table.rows, function(row){
+          if(row.cells.length > 1) row.deleteCell(row.cells.length - 1);
+        });
+      } else if(act === 'removetable'){
+        wrap.remove();
+      }
+      scheduleNoteSave();
     }
   });
   noteCloseBtn.addEventListener('click', function(){
