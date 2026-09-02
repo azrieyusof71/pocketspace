@@ -987,20 +987,12 @@
   .note-close-btn:hover{ color:var(--coral); border-color:var(--coral); }
 
   .note-toolbar{
-    position:absolute;
-    left:50%;
-    bottom:52px;
-    transform:translateX(-50%);
+    flex:none;
     display:flex; align-items:center; gap:2px;
-    padding:5px;
-    max-width:calc(100% - 28px);
-    overflow-x:auto;
+    padding:6px 10px;
     background:var(--toolbar-bg);
-    -webkit-backdrop-filter:blur(10px);
-    backdrop-filter:blur(10px);
-    border-radius:999px;
-    box-shadow:var(--toolbar-shadow);
-    z-index:5;
+    border-bottom:1px solid var(--line);
+    overflow-x:auto;
     scrollbar-width:none;
   }
   .note-toolbar::-webkit-scrollbar{ display:none; }
@@ -1118,7 +1110,7 @@
     font-family:"IBM Plex Sans", sans-serif;
     font-size:15px;
     line-height:1.6;
-    padding:14px 14px 62px;
+    padding:14px;
     overflow-y:auto;
   }
   .note-content-input:empty::before{
@@ -1391,13 +1383,13 @@
       <input id="noteTitleInput" type="text" class="note-title-input" placeholder="Title" maxlength="40">
       <button id="noteCloseBtn" type="button" class="note-close-btn" aria-label="Close">✕</button>
     </div>
-    <div id="noteContentInput" class="note-content-input" contenteditable="true" data-placeholder="Write anything…"></div>
     <div class="note-toolbar">
       <button id="noteBoldBtn" type="button" class="note-tool-btn" aria-label="Bold"><b>B</b></button>
       <div class="note-toolbar-divider"></div>
       <button id="noteChecklistBtn" type="button" class="note-tool-btn" aria-label="Check box">☑</button>
       <button id="noteTableBtn" type="button" class="note-tool-btn" aria-label="Table">⊞</button>
     </div>
+    <div id="noteContentInput" class="note-content-input" contenteditable="true" data-placeholder="Write anything…"></div>
     <div class="note-paper-footer">
       <button id="noteDeleteBtn" type="button" class="note-delete-btn">Delete this note</button>
     </div>
