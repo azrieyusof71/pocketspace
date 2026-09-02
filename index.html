@@ -114,6 +114,7 @@
     font-family:"IBM Plex Sans", system-ui, sans-serif;
     display:flex;
     justify-content:center;
+    align-items:flex-start;
     position:relative;
   }
 
@@ -302,7 +303,7 @@
   .sticker-edit-cancel:hover{ background:var(--coral); border-color:var(--coral); color:var(--paper-raised); }
   .sticker-trash{
     position:fixed;
-    bottom:24px; left:50%;
+    bottom:calc(24px + env(safe-area-inset-bottom, 0px)); left:50%;
     z-index:20;
     width:56px; height:56px;
     border-radius:50%;
@@ -2129,12 +2130,27 @@
 
   function isOverTrash(clientX, clientY){
     var r = stickerTrash.getBoundingClientRect();
-    return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+    var pad = 26; // generous hit-test margin so near-misses on touch still register
+    if(clientX >= r.left - pad && clientX <= r.right + pad && clientY >= r.top - pad && clientY <= r.bottom + pad){
+      return true;
+    }
+    // fallback: dropping anywhere in the bottom band of the screen also counts,
+    // so mobile browser chrome (URL bar) resizing mid-drag can't cause a miss
+    var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    return clientY >= vh - 96;
   }
 
   window.addEventListener('scroll', function(){
     if(editState) updateEditOverlayPosition();
   }, { passive: true });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', function(){
+      if(editState) updateEditOverlayPosition();
+    }, { passive: true });
+    window.visualViewport.addEventListener('scroll', function(){
+      if(editState) updateEditOverlayPosition();
+    }, { passive: true });
+  }
 
   stickerConfirmBtn.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation(); });
   stickerConfirmBtn.addEventListener('click', function(e){ e.stopPropagation(); confirmEdit(); });
