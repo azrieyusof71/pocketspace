@@ -618,6 +618,12 @@
     border-radius:6px;
   }
   .item .del:hover{ color:var(--coral); }
+  .item .edit-btn{
+    background:none;border:none;color:var(--ink-faint);
+    font-size:14px; padding:4px 4px; cursor:pointer;
+    border-radius:6px;
+  }
+  .item .edit-btn:hover{ color:var(--gold); }
 
   #savingsList{ display:flex; flex-direction:column; gap:9px; }
   .save-item{
@@ -660,6 +666,12 @@
     border-radius:6px;
   }
   .save-item .del:hover{ color:var(--coral); }
+  .save-item .edit-save-btn{
+    background:none;border:none;color:var(--ink-faint);
+    font-size:14px; padding:4px 4px; cursor:pointer;
+    border-radius:6px;
+  }
+  .save-item .edit-save-btn:hover{ color:var(--gold); }
   .save-bar-track{
     margin-top:10px;
     height:8px; border-radius:5px;
@@ -1674,7 +1686,7 @@
 
 <div class="overlay" id="overlay">
   <div class="sheet">
-    <h3>Add a payment</h3>
+    <h3 id="overlayTitle">Add a payment</h3>
     <div class="field">
       <label>Name</label>
       <input id="nameInput" type="text" placeholder="Rent, Tax, Groceries…" maxlength="24">
@@ -1705,7 +1717,7 @@
 
 <div class="overlay" id="saveGoalOverlay">
   <div class="sheet">
-    <h3>Add a savings goal</h3>
+    <h3 id="saveGoalOverlayTitle">Add a savings goal</h3>
     <div class="field">
       <label>What for</label>
       <input id="saveGoalNameInput" type="text" placeholder="New phone, Trip, Emergency fund…" maxlength="24">
@@ -1925,6 +1937,8 @@
   var recurringMonthsInput = document.getElementById('recurringMonthsInput');
   var cancelBtn = document.getElementById('cancelBtn');
   var saveBtn = document.getElementById('saveBtn');
+  var overlayTitle = document.getElementById('overlayTitle');
+  var editingItemId = null;
 
   recurringCheckbox.addEventListener('change', function(){
     recurringMonthsField.style.display = recurringCheckbox.checked ? '' : 'none';
@@ -1938,6 +1952,8 @@
   var saveGoalTargetInput = document.getElementById('saveGoalTargetInput');
   var saveGoalCancelBtn = document.getElementById('saveGoalCancelBtn');
   var saveGoalSaveBtn = document.getElementById('saveGoalSaveBtn');
+  var saveGoalOverlayTitle = document.getElementById('saveGoalOverlayTitle');
+  var editingGoalId = null;
 
   var saveAddOverlay = document.getElementById('saveAddOverlay');
   var saveAddTitle = document.getElementById('saveAddTitle');
@@ -2890,19 +2906,31 @@
   applyView();
 
   addSaveGoalBtn.addEventListener('click', function(){
+    editingGoalId = null;
+    saveGoalOverlayTitle.textContent = 'Add a savings goal';
+    saveGoalSaveBtn.textContent = 'Add';
     saveGoalNameInput.value = '';
     saveGoalTargetInput.value = '';
     saveGoalOverlay.classList.add('open');
     setTimeout(function(){ saveGoalNameInput.focus(); }, 50);
   });
-  saveGoalCancelBtn.addEventListener('click', function(){ saveGoalOverlay.classList.remove('open'); });
-  saveGoalOverlay.addEventListener('click', function(e){ if(e.target === saveGoalOverlay) saveGoalOverlay.classList.remove('open'); });
+  saveGoalCancelBtn.addEventListener('click', function(){ saveGoalOverlay.classList.remove('open'); editingGoalId = null; });
+  saveGoalOverlay.addEventListener('click', function(e){ if(e.target === saveGoalOverlay){ saveGoalOverlay.classList.remove('open'); editingGoalId = null; } });
   saveGoalSaveBtn.addEventListener('click', function(){
     var name = (saveGoalNameInput.value || '').trim();
     var target = round2(parseFloat(saveGoalTargetInput.value));
     if(!name){ saveGoalNameInput.focus(); return; }
     if(!target || target <= 0){ saveGoalTargetInput.focus(); return; }
-    state.savings.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, target: target, saved: 0 });
+    if(editingGoalId){
+      var existingGoal = state.savings.filter(function(g){ return g.id === editingGoalId; })[0];
+      if(existingGoal){
+        existingGoal.name = name;
+        existingGoal.target = target;
+      }
+      editingGoalId = null;
+    } else {
+      state.savings.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, target: target, saved: 0 });
+    }
     save(); render();
     saveGoalOverlay.classList.remove('open');
   });
@@ -3002,6 +3030,9 @@
   }
 
   addBtn.addEventListener('click', function(){
+    editingItemId = null;
+    overlayTitle.textContent = 'Add a payment';
+    saveBtn.textContent = 'Add';
     nameInput.value = '';
     amountInput.value = '';
     dueDateInput.value = '';
@@ -3023,16 +3054,31 @@
     if(!name){ nameInput.focus(); return; }
     if(!amt || amt <= 0){ amountInput.focus(); return; }
     if(isRecurring && !dueDate){ dueDateInput.focus(); return; }
-    var recurring = null;
-    if(isRecurring){
-      var months = parseInt(recurringMonthsInput.value, 10);
-      recurring = { months: (months && months > 0) ? months : null, occurrencesDone: 1 };
+    if(editingItemId){
+      var existing = state.items.filter(function(i){ return i.id === editingItemId; })[0];
+      if(existing){
+        var months = parseInt(recurringMonthsInput.value, 10);
+        var existingOccurrences = (existing.recurring && existing.recurring.occurrencesDone) || 1;
+        existing.name = name;
+        existing.amount = amt;
+        existing.dueDate = dueDate;
+        existing.recurring = isRecurring
+          ? { months: (months && months > 0) ? months : null, occurrencesDone: existingOccurrences }
+          : null;
+      }
+      editingItemId = null;
+    } else {
+      var recurring = null;
+      if(isRecurring){
+        var months = parseInt(recurringMonthsInput.value, 10);
+        recurring = { months: (months && months > 0) ? months : null, occurrencesDone: 1 };
+      }
+      state.items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, amount: amt, dueDate: dueDate, paid: false, recurring: recurring });
     }
-    state.items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name: name, amount: amt, dueDate: dueDate, paid: false, recurring: recurring });
     save(); render(); closeSheet();
   });
 
-  function closeSheet(){ overlay.classList.remove('open'); }
+  function closeSheet(){ overlay.classList.remove('open'); editingItemId = null; }
 
   function fmt(n){
     var v = Math.round((n||0)*100)/100;
@@ -3186,6 +3232,7 @@
             '<div class="row-actions">' +
               '<button class="sub-save-btn" aria-label="Take money out of ' + goal.name + '">−</button>' +
               '<button class="add-save-btn">Add</button>' +
+              '<button class="edit-save-btn" aria-label="Edit target for ' + goal.name + '">✎</button>' +
               '<button class="del" aria-label="Remove ' + goal.name + '">✕</button>' +
             '</div>' +
           '</div>' +
@@ -3210,6 +3257,15 @@
           saveAddAmountInput.value = '';
           saveAddOverlay.classList.add('open');
           setTimeout(function(){ saveAddAmountInput.focus(); }, 50);
+        });
+        row.querySelector('.edit-save-btn').addEventListener('click', function(){
+          editingGoalId = goal.id;
+          saveGoalOverlayTitle.textContent = 'Edit "' + goal.name + '"';
+          saveGoalSaveBtn.textContent = 'Save';
+          saveGoalNameInput.value = goal.name;
+          saveGoalTargetInput.value = goal.target;
+          saveGoalOverlay.classList.add('open');
+          setTimeout(function(){ saveGoalTargetInput.focus(); }, 50);
         });
         row.querySelector('.del').addEventListener('click', function(){
           var desc = (goal.saved > 0)
@@ -3252,6 +3308,7 @@
           '<div class="amt"></div>' +
           '<div class="row-actions">' +
             '<button class="paid-btn">' + (item.paid ? 'Paid ✓' : 'Paid') + '</button>' +
+            '<button class="edit-btn" aria-label="Edit ' + item.name + '">✎</button>' +
             '<button class="del" aria-label="Remove ' + item.name + '">✕</button>' +
           '</div>';
         row.querySelector('.name').textContent = item.name;
@@ -3260,6 +3317,21 @@
         row.querySelector('.paid-btn').addEventListener('click', function(){
           item.paid = !item.paid;
           save(); render();
+        });
+        row.querySelector('.edit-btn').addEventListener('click', function(){
+          editingItemId = item.id;
+          overlayTitle.textContent = 'Edit "' + item.name + '"';
+          saveBtn.textContent = 'Save';
+          nameInput.value = item.name;
+          amountInput.value = item.amount;
+          dueDateInput.value = item.dueDate || '';
+          var isRec = !!item.recurring;
+          recurringCheckbox.checked = isRec;
+          recurringMonthsInput.value = (isRec && item.recurring.months) ? item.recurring.months : '';
+          recurringMonthsField.style.display = isRec ? '' : 'none';
+          dueDateLabel.textContent = isRec ? 'Due date (needed to repeat monthly)' : 'Due date (optional)';
+          overlay.classList.add('open');
+          setTimeout(function(){ amountInput.focus(); }, 50);
         });
         row.querySelector('.del').addEventListener('click', function(){
           var desc = '';
