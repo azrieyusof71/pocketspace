@@ -586,7 +586,8 @@
     border-radius:13px;
     padding:12px 14px;
   }
-  .item .dot{ width:10px;height:10px;border-radius:50%;flex:none; }
+  .item .dot{ width:10px;height:10px;border-radius:50%;flex:none;position:relative;cursor:pointer;overflow:hidden; }
+  .item .dot input[type="color"]{ position:absolute; top:-4px; left:-4px; width:18px; height:18px; opacity:0; cursor:pointer; border:none; padding:0; }
   .item.paid .dot{ opacity:.35; }
   .item .info{ flex:1; min-width:0; }
   .item .name{ font-size:14.5px; font-weight:600; }
@@ -954,6 +955,35 @@
     margin-top:2px;
   }
   .cal-day.selected .mark{ background:var(--paper); }
+
+  .cal-months{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+  }
+  .cal-month{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    padding:12px 4px;
+    border-radius:11px;
+    font-size:13px;
+    font-family:"IBM Plex Mono", monospace;
+    cursor:pointer;
+    color:var(--ink);
+    background:var(--paper);
+    border:1px solid var(--line);
+  }
+  .cal-month:hover{ border-color:var(--gold); }
+  .cal-month.today{ box-shadow:inset 0 0 0 1px var(--gold); }
+  .cal-month.selected{ background:var(--gold); color:var(--paper); font-weight:600; border-color:var(--gold); }
+  .cal-month .mark{
+    width:4px;height:4px;border-radius:50%;
+    background:var(--mint);
+  }
+  .cal-month.selected .mark{ background:var(--paper); }
 
   .day-panel{
     background:var(--paper-raised);
@@ -1715,6 +1745,25 @@
   </div>
 </div>
 
+<div class="overlay" id="payMonthOverlay">
+  <div class="sheet">
+    <h3 id="payMonthTitle">Pay bill</h3>
+    <div class="cal-card compact">
+      <div class="cal-nav">
+        <button type="button" id="payMonthPrevYear" aria-label="Previous year">‹</button>
+        <div class="label" id="payMonthYearLabel">2026</div>
+        <button type="button" id="payMonthNextYear" aria-label="Next year">›</button>
+      </div>
+      <div class="cal-months" id="payMonthGrid"></div>
+    </div>
+    <div class="field-hint" id="payMonthStatusHint"></div>
+    <div class="sheet-actions">
+      <button id="payMonthCancelBtn" type="button">Cancel</button>
+      <button id="payMonthToggleBtn" type="button">Mark as Paid</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="saveGoalOverlay">
   <div class="sheet">
     <h3 id="saveGoalOverlayTitle">Add a savings goal</h3>
@@ -1939,6 +1988,19 @@
   var saveBtn = document.getElementById('saveBtn');
   var overlayTitle = document.getElementById('overlayTitle');
   var editingItemId = null;
+
+  var payMonthOverlay = document.getElementById('payMonthOverlay');
+  var payMonthTitle = document.getElementById('payMonthTitle');
+  var payMonthGrid = document.getElementById('payMonthGrid');
+  var payMonthYearLabel = document.getElementById('payMonthYearLabel');
+  var payMonthPrevYear = document.getElementById('payMonthPrevYear');
+  var payMonthNextYear = document.getElementById('payMonthNextYear');
+  var payMonthStatusHint = document.getElementById('payMonthStatusHint');
+  var payMonthCancelBtn = document.getElementById('payMonthCancelBtn');
+  var payMonthToggleBtn = document.getElementById('payMonthToggleBtn');
+  var payMonthTargetId = null;
+  var payMonthPickerYear = new Date().getFullYear();
+  var payMonthSelectedKey = null;
 
   recurringCheckbox.addEventListener('change', function(){
     recurringMonthsField.style.display = recurringCheckbox.checked ? '' : 'none';
@@ -3080,10 +3142,96 @@
 
   function closeSheet(){ overlay.classList.remove('open'); editingItemId = null; }
 
+  var PAY_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var PAY_MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function openPayMonthPicker(item){
+    payMonthTargetId = item.id;
+    payMonthTitle.textContent = 'Pay "' + item.name + '"';
+    var curKey = currentCycleKey(item);
+    payMonthSelectedKey = curKey;
+    payMonthPickerYear = parseInt(curKey.split('-')[0], 10) || new Date().getFullYear();
+    renderPayMonthGrid();
+    refreshPayMonthUI();
+    payMonthOverlay.classList.add('open');
+  }
+  function renderPayMonthGrid(){
+    var item = (state.items || []).filter(function(i){ return i.id === payMonthTargetId; })[0];
+    payMonthYearLabel.textContent = payMonthPickerYear;
+    var todayKey = monthKeyFromDate(new Date());
+    payMonthGrid.innerHTML = '';
+    for(var m = 0; m < 12; m++){
+      var key = payMonthPickerYear + '-' + pad2(m+1);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-month';
+      if(key === todayKey) btn.className += ' today';
+      if(key === payMonthSelectedKey) btn.className += ' selected';
+      var labelSpan = document.createElement('span');
+      labelSpan.textContent = PAY_MONTH_SHORT[m];
+      btn.appendChild(labelSpan);
+      if(item && isItemPaidForKey(item, key)){
+        var mark = document.createElement('span');
+        mark.className = 'mark';
+        btn.appendChild(mark);
+      }
+      (function(k){
+        btn.addEventListener('click', function(){
+          payMonthSelectedKey = k;
+          renderPayMonthGrid();
+          refreshPayMonthUI();
+        });
+      })(key);
+      payMonthGrid.appendChild(btn);
+    }
+  }
+  function refreshPayMonthUI(){
+    var item = (state.items || []).filter(function(i){ return i.id === payMonthTargetId; })[0];
+    if(!item) return;
+    var key = payMonthSelectedKey;
+    if(!key){ payMonthStatusHint.textContent = 'Pick a month.'; payMonthToggleBtn.disabled = true; return; }
+    payMonthToggleBtn.disabled = false;
+    var isPaid = isItemPaidForKey(item, key);
+    var amountPaid = isPaid ? (item.paidMonths[key] || 0) : 0;
+    payMonthStatusHint.textContent = isPaid
+      ? ('Marked paid for ' + monthKeyLabel(key) + ' (' + fmt(amountPaid) + ').')
+      : ('Not paid for ' + monthKeyLabel(key) + ' yet.');
+    payMonthToggleBtn.textContent = isPaid ? 'Mark as Unpaid' : 'Mark as Paid';
+  }
+  function monthKeyLabel(key){
+    var parts = (key||'').split('-');
+    if(parts.length !== 2) return key;
+    var idx = parseInt(parts[1],10) - 1;
+    return (PAY_MONTH_NAMES[idx] || parts[1]) + ' ' + parts[0];
+  }
+  payMonthPrevYear.addEventListener('click', function(){ payMonthPickerYear -= 1; renderPayMonthGrid(); });
+  payMonthNextYear.addEventListener('click', function(){ payMonthPickerYear += 1; renderPayMonthGrid(); });
+  payMonthCancelBtn.addEventListener('click', function(){ payMonthOverlay.classList.remove('open'); payMonthTargetId = null; });
+  payMonthOverlay.addEventListener('click', function(e){ if(e.target === payMonthOverlay){ payMonthOverlay.classList.remove('open'); payMonthTargetId = null; } });
+  payMonthToggleBtn.addEventListener('click', function(){
+    var item = (state.items || []).filter(function(i){ return i.id === payMonthTargetId; })[0];
+    if(!item) return;
+    var key = payMonthSelectedKey;
+    if(!key) return;
+    if(!item.paidMonths) item.paidMonths = {};
+    if(isItemPaidForKey(item, key)){
+      delete item.paidMonths[key];
+    } else {
+      item.paidMonths[key] = item.amount;
+    }
+    save(); render();
+    renderPayMonthGrid();
+    refreshPayMonthUI();
+  });
+
   function fmt(n){
     var v = Math.round((n||0)*100)/100;
     var s = v.toLocaleString(undefined,{maximumFractionDigits:2});
     return '$' + s;
+  }
+
+  function toHexColor(c){
+    return /^#[0-9a-fA-F]{6}$/.test(c) ? c : '#888888';
   }
 
   function round2(n){
@@ -3128,14 +3276,65 @@
     var day = ('0'+d.getDate()).slice(-2);
     return y+'-'+m+'-'+day;
   }
+
+  // ---- Recurring bills are tracked per calendar month, so paying "Rent" for
+  // September doesn't get silently un-paid (and refunded into Amount) just
+  // because October rolls around — each month you pay is its own record.
+  function monthKeyFromDate(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1); }
+  function currentCycleKey(item){
+    if(item.dueDate){
+      var d = parseLocalDate(item.dueDate);
+      if(d) return monthKeyFromDate(d);
+    }
+    return monthKeyFromDate(new Date());
+  }
+  function isItemPaidForKey(item, key){
+    return !!(item.paidMonths && Object.prototype.hasOwnProperty.call(item.paidMonths, key));
+  }
+  function isItemPaidCurrent(item){
+    if(!item.recurring) return !!item.paid;
+    return isItemPaidForKey(item, currentCycleKey(item));
+  }
+  function recurringItemPaidSum(item){
+    if(!item.paidMonths) return 0;
+    return Object.keys(item.paidMonths).reduce(function(s,k){ return s + (item.paidMonths[k] || 0); }, 0);
+  }
+  function recurringPastMonthsTotal(){
+    // Sum of paid months for recurring bills EXCLUDING their current cycle —
+    // this is money already spent in prior months, shown like the archive total.
+    var sum = 0;
+    (state.items || []).forEach(function(item){
+      if(!item.recurring || !item.paidMonths) return;
+      var curKey = currentCycleKey(item);
+      Object.keys(item.paidMonths).forEach(function(k){
+        if(k !== curKey) sum += (item.paidMonths[k] || 0);
+      });
+    });
+    return sum;
+  }
+  function migrateRecurringPaidMonths(){
+    var changed = false;
+    (state.items || []).forEach(function(item){
+      if(item.recurring && !item.paidMonths){
+        item.paidMonths = {};
+        if(item.paid){
+          item.paidMonths[currentCycleKey(item)] = item.amount;
+        }
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
   function processRecurring(){
     var today = new Date();
     today.setHours(0,0,0,0);
-    var changed = false;
+    var changed = migrateRecurringPaidMonths();
     (state.items || []).forEach(function(item){
-      if(!item.recurring || !item.paid || !item.dueDate) return;
+      if(!item.recurring || !item.dueDate) return;
       var due = parseLocalDate(item.dueDate);
       if(!due || due.getTime() >= today.getTime()) return;
+      if(!isItemPaidForKey(item, monthKeyFromDate(due))) return; // still unpaid & overdue — don't skip ahead
       var occurrences = item.recurring.occurrencesDone || 1;
       var limit = item.recurring.months;
       if(limit && occurrences >= limit){
@@ -3145,7 +3344,6 @@
       }
       var next = new Date(due.getFullYear(), due.getMonth()+1, due.getDate());
       item.dueDate = formatISODate(next);
-      item.paid = false;
       item.recurring.occurrencesDone = occurrences + 1;
       changed = true;
     });
@@ -3156,8 +3354,9 @@
     var total = round2(state.total || 0);
     var items = state.items || [];
     var savings = state.savings || [];
-    var paidTotal = items.reduce(function(s,i){ return s + (i.paid ? i.amount : 0); }, 0) + (state.paidArchiveTotal || 0);
-    var unpaidTotal = items.reduce(function(s,i){ return s + (i.paid ? 0 : i.amount); }, 0);
+    var pastRecurringPaid = recurringPastMonthsTotal();
+    var paidTotal = items.reduce(function(s,i){ return s + (isItemPaidCurrent(i) ? i.amount : 0); }, 0) + pastRecurringPaid + (state.paidArchiveTotal || 0);
+    var unpaidTotal = items.reduce(function(s,i){ return s + (isItemPaidCurrent(i) ? 0 : i.amount); }, 0);
     var allocated = paidTotal + unpaidTotal;
     var savingsTotal = round2(savings.reduce(function(s,g){ return s + (g.saved || 0); }, 0) + (state.savingsArchiveTotal || 0));
     var spent = spendGrandTotal();
@@ -3174,15 +3373,16 @@
     var COLORS = getColors();
 
     items.forEach(function(item, idx){
-      if(!item.paid) return;
+      if(!isItemPaidCurrent(item)) return;
       var frac = basis > 0 ? item.amount / basis : 0;
       var deg = frac * 360;
       var color = COLORS[idx % COLORS.length];
       stops.push(color + ' ' + cursor.toFixed(3) + 'deg ' + (cursor+deg).toFixed(3) + 'deg');
       cursor += deg;
     });
-    if(state.paidArchiveTotal){
-      var archiveFrac = basis > 0 ? state.paidArchiveTotal / basis : 0;
+    var archiveTotal = (state.paidArchiveTotal || 0) + pastRecurringPaid;
+    if(archiveTotal){
+      var archiveFrac = basis > 0 ? archiveTotal / basis : 0;
       var archiveDeg = archiveFrac * 360;
       stops.push('var(--gold-deep) ' + cursor.toFixed(3) + 'deg ' + (cursor+archiveDeg).toFixed(3) + 'deg');
       cursor += archiveDeg;
@@ -3292,31 +3492,45 @@
     } else {
       items.forEach(function(item, idx){
         var pct = basis > 0 ? Math.round((item.amount/basis)*100) : 0;
+        var paidNow = isItemPaidCurrent(item);
         var row = document.createElement('div');
-        row.className = 'item' + (item.paid ? ' paid' : '');
-        var overdue = !item.paid && isOverdue(item.dueDate);
-        var dueLabel = item.dueDate ? (overdue ? 'Overdue ' : 'Due ') + formatDueDate(item.dueDate) : (item.paid ? 'Paid' : pct + '% of total');
+        row.className = 'item' + (paidNow ? ' paid' : '');
+        var overdue = !paidNow && isOverdue(item.dueDate);
+        var dueLabel = item.dueDate ? (overdue ? 'Overdue ' : 'Due ') + formatDueDate(item.dueDate) : (paidNow ? 'Paid' : pct + '% of total');
         if(item.recurring){
           dueLabel += ' · Monthly';
           if(item.recurring.months){
             dueLabel += ' (' + (item.recurring.occurrencesDone || 1) + '/' + item.recurring.months + ')';
           }
         }
+        var itemColor = item.color || COLORS[idx % COLORS.length];
         row.innerHTML =
-          '<div class="dot" style="background:' + COLORS[idx % COLORS.length] + '"></div>' +
+          '<label class="dot" style="background:' + itemColor + '" title="Change color"><input type="color" class="dot-input" value="' + toHexColor(itemColor) + '"></label>' +
           '<div class="info"><div class="name"></div><div class="due' + (overdue ? ' overdue' : '') + '"></div></div>' +
           '<div class="amt"></div>' +
           '<div class="row-actions">' +
-            '<button class="paid-btn">' + (item.paid ? 'Paid ✓' : 'Paid') + '</button>' +
+            '<button class="paid-btn">' + (paidNow ? 'Paid ✓' : 'Paid') + '</button>' +
             '<button class="edit-btn" aria-label="Edit ' + item.name + '">✎</button>' +
             '<button class="del" aria-label="Remove ' + item.name + '">✕</button>' +
           '</div>';
         row.querySelector('.name').textContent = item.name;
         row.querySelector('.due').textContent = dueLabel;
         row.querySelector('.amt').textContent = fmt(item.amount);
-        row.querySelector('.paid-btn').addEventListener('click', function(){
-          item.paid = !item.paid;
+        row.querySelector('.dot-input').addEventListener('click', function(e){ e.stopPropagation(); });
+        row.querySelector('.dot-input').addEventListener('input', function(e){
+          item.color = e.target.value;
+          row.querySelector('.dot').style.background = e.target.value;
+        });
+        row.querySelector('.dot-input').addEventListener('change', function(){
           save(); render();
+        });
+        row.querySelector('.paid-btn').addEventListener('click', function(){
+          if(item.recurring){
+            openPayMonthPicker(item);
+          } else {
+            item.paid = !item.paid;
+            save(); render();
+          }
         });
         row.querySelector('.edit-btn').addEventListener('click', function(){
           editingItemId = item.id;
@@ -3335,17 +3549,18 @@
         });
         row.querySelector('.del').addEventListener('click', function(){
           var desc = '';
+          var histPaid = item.recurring ? recurringItemPaidSum(item) : (item.paid ? item.amount : 0);
           if(item.recurring){
             desc += 'This bill repeats monthly — deleting it stops the recurring cycle for good; it won\'t come back next month. ';
           }
-          if(item.paid){
-            desc += 'You already marked it Paid, so ' + fmt(item.amount) + ' stays deducted from Amount — deleting only removes it from this list.';
+          if(histPaid > 0){
+            desc += 'You\'ve paid ' + fmt(histPaid) + ' toward this' + (item.recurring ? ' over time' : '') + ' — that stays deducted from Amount. Deleting only removes it from this list.';
           } else {
             desc += 'It hasn\'t been paid yet, so nothing will change in Amount — this just removes it from your list.';
           }
           showConfirm('Delete "' + item.name + '"?', desc, function(){
-            if(item.paid){
-              state.paidArchiveTotal = (state.paidArchiveTotal || 0) + item.amount;
+            if(histPaid > 0){
+              state.paidArchiveTotal = (state.paidArchiveTotal || 0) + histPaid;
             }
             state.items = state.items.filter(function(i){ return i.id !== item.id; });
             save(); render();
