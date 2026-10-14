@@ -241,6 +241,127 @@
   }
   #resetBtn:hover{ background:var(--coral); border-color:var(--coral); color:#fff; }
 
+  /* hide the floating corner buttons while any popup or editor is open */
+  body:has(.overlay.open) #themeBtn,
+  body:has(.overlay.open) #navMenuBtn,
+  body:has(.overlay.open) #stickerMenuBtn,
+  body:has(.overlay.open) #resetBtn,
+  body:has(.overlay.open) #addNoteBtn,
+  body:has(.overlay.open) #addTaskBtn,
+  body:has(.overlay.open) .nav-menu{ visibility:hidden; }
+
+  /* ============ tasks ============ */
+  #addTaskBtn{
+    position:fixed;
+    right:20px; bottom:24px;
+    z-index:12;
+    width:52px; height:52px;
+    border-radius:50%;
+    background:var(--gold);
+    color:var(--paper);
+    border:none;
+    font-size:26px;
+    line-height:1;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  #addTaskBtn:active{ transform:scale(.94); }
+  .task-list{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .task-row-wrap + .task-row-wrap{ border-top:1px solid var(--line); }
+  .task-row{ display:flex; align-items:center; gap:6px; padding:11px 12px 11px 6px; }
+  .task-expand{
+    width:24px; height:24px; flex:none;
+    background:none; border:none; border-radius:6px;
+    color:var(--ink-faint); font-size:12px; cursor:pointer;
+  }
+  .task-expand:hover{ color:var(--ink); background:color-mix(in srgb, var(--ink) 8%, transparent); }
+  .task-expand:disabled{ visibility:hidden; }
+  .task-main{ flex:1; min-width:0; cursor:pointer; }
+  .task-title{ font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .task-title.untitled{ color:var(--ink-faint); font-weight:500; }
+  .task-row.done .task-title{ text-decoration:line-through; color:var(--ink-faint); }
+  .task-meta{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:5px; font-size:11.5px; color:var(--ink-faint); font-variant-numeric:tabular-nums; }
+  .task-meta:empty{ display:none; }
+  .task-date.overdue{ color:var(--coral); font-weight:600; }
+  .task-check{ width:20px; height:20px; flex:none; accent-color:var(--mint); cursor:pointer; margin:0 2px 0 6px; }
+  .task-tag{
+    --tc: var(--ink-faint);
+    font-size:11px; font-weight:600;
+    padding:2px 8px; border-radius:6px; white-space:nowrap;
+    background:color-mix(in srgb, var(--tc) 16%, var(--paper-raised));
+    color:color-mix(in srgb, var(--tc) 80%, var(--ink));
+  }
+  .tc-urgent{ --tc: var(--coral); }
+  .tc-high{ --tc: var(--gold); }
+  .tc-medium{ --tc: var(--save); }
+  .tc-low{ --tc: var(--mint); }
+  .tc-not_started{ --tc: var(--ink-faint); }
+  .tc-in_progress{ --tc: var(--save); }
+  .tc-completed{ --tc: var(--mint); }
+  .task-subrows{ display:flex; flex-direction:column; gap:7px; padding:0 14px 12px 42px; }
+  .task-subrow{ display:flex; align-items:center; gap:9px; font-size:13.5px; }
+  .task-subrow input{ width:16px; height:16px; flex:none; accent-color:var(--mint); cursor:pointer; margin:0; }
+  .task-subrow .txt{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .task-subrow.done .txt{ text-decoration:line-through; color:var(--ink-faint); }
+  .task-subrow .sub-date{ flex:none; font-size:11px; color:var(--ink-faint); }
+  .task-subrow .sub-date.overdue{ color:var(--coral); font-weight:600; }
+  .cal-day .mark.late{ background:var(--coral); }
+  .task-day-label{ font-family:"Fraunces", Georgia, serif; font-size:15px; font-weight:600; margin:16px 2px 10px; }
+
+  .task-body{ flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:14px; }
+  .task-props{ display:flex; flex-direction:column; gap:12px; }
+  .task-prop{ display:grid; grid-template-columns:70px 1fr; align-items:start; gap:10px; }
+  .task-prop-label{ font-size:12.5px; color:var(--ink-soft); font-weight:600; padding-top:6px; }
+  .task-prop-val{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .task-field{
+    background:var(--paper); border:1px solid var(--line); border-radius:9px;
+    padding:6px 9px; color:var(--ink);
+    font-family:"IBM Plex Sans", sans-serif; font-size:14px; outline:none;
+  }
+  .task-field:focus{ border-color:var(--gold); }
+  .task-chip{
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    border-radius:999px; padding:5px 11px;
+    font-family:"IBM Plex Sans", sans-serif; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .task-chip:hover{ border-color:var(--gold); }
+  .task-chip.selected{ border-color:var(--gold); background:color-mix(in srgb, var(--gold) 14%, var(--paper)); color:var(--gold-deep); }
+  .task-hint{ font-size:11.5px; color:var(--coral); width:100%; }
+  .task-section-title{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-family:"Fraunces", Georgia, serif; font-size:15px; font-weight:600;
+    border-top:1px solid var(--line); padding-top:14px;
+  }
+  .task-section-title .count{ font-family:"IBM Plex Sans", sans-serif; font-size:12px; color:var(--ink-faint); font-weight:600; margin-right:auto; }
+  .task-sub-edit{ display:flex; align-items:center; gap:8px; }
+  .task-sub-edit input[type="checkbox"]{ width:17px; height:17px; flex:none; accent-color:var(--mint); cursor:pointer; margin:0; }
+  .task-sub-text{
+    flex:1; min-width:60px;
+    border:none; border-bottom:1px solid transparent; background:none; outline:none;
+    color:var(--ink); font-family:"IBM Plex Sans", sans-serif; font-size:14.5px; padding:5px 0;
+  }
+  .task-sub-text:focus{ border-bottom-color:var(--line); }
+  .task-sub-edit.done .task-sub-text{ text-decoration:line-through; color:var(--ink-faint); }
+  .task-sub-date{ width:132px; flex:none; font-size:12px; padding:4px 6px; }
+  .task-sub-del{ flex:none; background:none; border:none; color:var(--ink-faint); font-size:14px; cursor:pointer; padding:2px 4px; }
+  .task-sub-del:hover{ color:var(--coral); }
+  .task-sub-add{ display:flex; gap:8px; }
+  .task-sub-add .task-field{ flex:1; min-width:0; }
+  .task-sub-add button{
+    flex:none; background:var(--gold); color:var(--paper); border:none; border-radius:9px;
+    padding:0 14px; font-family:"IBM Plex Sans", sans-serif; font-weight:600; font-size:13.5px; cursor:pointer;
+  }
+  .task-notes{ min-height:110px; outline:none; font-size:15px; line-height:1.6; color:var(--ink); word-break:break-word; }
+  .task-notes:empty::before{ content:attr(data-placeholder); color:var(--ink-faint); }
+  @media (max-width:420px){
+    .task-sub-date{ width:116px; }
+  }
+
   /* ============ stickers ============ */
   .sticker-layer{
     position:absolute;
@@ -455,7 +576,7 @@
     background:var(--paper-raised);
     cursor:pointer;
   }
-  #app, #notesApp{
+  #app, #notesApp, #tasksApp{
     width:100%;
     max-width:460px;
     padding:40px 20px 90px;
@@ -464,6 +585,7 @@
     gap:28px;
   }
   #notesApp{ position:relative; z-index:1; max-width:900px; }
+  #tasksApp{ position:relative; z-index:1; max-width:560px; }
   header{ text-align:center; }
   .eyebrow{
     font-size:11px;
@@ -1349,6 +1471,10 @@
     <span>Notes</span>
     <span class="check">✓</span>
   </button>
+  <button class="nav-menu-item" type="button" data-view="tasks">
+    <span>Tasks</span>
+    <span class="check">✓</span>
+  </button>
 </div>
 
 <div id="app">
@@ -1564,6 +1690,92 @@
 </div>
 
 <button id="addNoteBtn" type="button" aria-label="Add sticky note" style="display:none;">+</button>
+
+<div id="tasksApp" style="display:none;">
+  <div class="sticker-layer" id="stickerLayerTasks"></div>
+  <header>
+    <div class="eyebrow">PocketSpace</div>
+    <h1>Tasks</h1>
+    <p class="sub">Tap + to add a task. Open one to set a schedule and subtasks.</p>
+  </header>
+
+  <div>
+    <div class="tabs" id="taskTabs">
+      <button class="tab-btn active" type="button" data-ttab="all">All</button>
+      <button class="tab-btn" type="button" data-ttab="todo">To Do</button>
+      <button class="tab-btn" type="button" data-ttab="done">Done</button>
+      <button class="tab-btn" type="button" data-ttab="calendar">Calendar</button>
+    </div>
+
+    <div id="taskListWrap" style="margin-top:12px;"></div>
+
+    <div id="taskCalWrap" style="margin-top:12px;" hidden>
+      <div class="cal-card">
+        <div class="cal-nav">
+          <button id="taskCalPrev" type="button" aria-label="Previous month">‹</button>
+          <div class="label" id="taskCalLabel">Month Year</div>
+          <button id="taskCalNext" type="button" aria-label="Next month">›</button>
+        </div>
+        <div class="cal-weekdays">
+          <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+        </div>
+        <div class="cal-days" id="taskCalDays"></div>
+      </div>
+      <div class="task-day-label" id="taskCalDayLabel"></div>
+      <div id="taskCalDayList"></div>
+    </div>
+  </div>
+</div>
+
+<button id="addTaskBtn" type="button" aria-label="Add task" style="display:none;">+</button>
+
+<div class="overlay note-editor-overlay" id="taskEditorOverlay">
+  <div class="note-paper">
+    <div class="note-paper-header">
+      <input id="taskTitleInput" type="text" class="note-title-input" placeholder="Task name" maxlength="80">
+      <button id="taskCloseBtn" type="button" class="note-close-btn" aria-label="Close">✕</button>
+    </div>
+    <div class="task-body">
+      <div class="task-props">
+        <div class="task-prop">
+          <span class="task-prop-label">Due</span>
+          <div class="task-prop-val">
+            <input id="taskDueInput" type="date" class="task-field" aria-label="Due date">
+            <input id="taskTimeInput" type="time" class="task-field" aria-label="Due time">
+          </div>
+        </div>
+        <div class="task-prop">
+          <span class="task-prop-label">Priority</span>
+          <div class="task-prop-val" id="taskPriorityChips"></div>
+        </div>
+        <div class="task-prop">
+          <span class="task-prop-label">Status</span>
+          <div class="task-prop-val" id="taskStatusChips"></div>
+        </div>
+        <div class="task-prop">
+          <span class="task-prop-label">Repeat</span>
+          <div class="task-prop-val" id="taskRepeatChips"></div>
+        </div>
+      </div>
+
+      <div class="task-section-title">Subtasks <span class="count" id="taskSubCount"></span></div>
+      <div id="taskSubList"></div>
+      <div class="task-sub-add">
+        <input id="taskSubInput" type="text" class="task-field" placeholder="Add a subtask…" maxlength="80">
+        <button id="taskSubAddBtn" type="button">Add</button>
+      </div>
+
+      <div class="task-section-title">Notes
+        <button id="taskBoldBtn" type="button" class="note-tool-btn" aria-label="Bold"><b>B</b></button>
+      </div>
+      <div id="taskNotesInput" class="task-notes" contenteditable="true" data-placeholder="Add details, links, anything…"></div>
+    </div>
+    <div class="note-paper-footer">
+      <button id="taskDeleteBtn" type="button" class="note-delete-btn">Delete this task</button>
+    </div>
+  </div>
+</div>
+
 
 <div class="overlay" id="addNoteOverlay">
   <div class="sheet">
@@ -1938,21 +2150,28 @@
   var appView = document.getElementById('app');
   var notesAppView = document.getElementById('notesApp');
   var addNoteBtnEl = document.getElementById('addNoteBtn');
+  var tasksAppView = document.getElementById('tasksApp');
+  var addTaskBtnEl = document.getElementById('addTaskBtn');
   var currentView = 'tracker';
   try{ currentView = localStorage.getItem(VIEW_KEY) || 'tracker'; }catch(e){}
 
   function applyView(){
     var isNotes = currentView === 'notes';
-    appView.style.display = isNotes ? 'none' : '';
+    var isTasks = currentView === 'tasks';
+    appView.style.display = (isNotes || isTasks) ? 'none' : '';
     notesAppView.style.display = isNotes ? '' : 'none';
+    tasksAppView.style.display = isTasks ? '' : 'none';
     addNoteBtnEl.style.display = isNotes ? '' : 'none';
+    addTaskBtnEl.style.display = isTasks ? '' : 'none';
     navMenuItems.forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.view === currentView);
     });
     if(isNotes && typeof renderNotes === 'function') renderNotes();
+    if(isTasks && typeof renderTasks === 'function') renderTasks();
     if(typeof stickerLayerTracker !== 'undefined' && stickerLayerTracker){
-      stickerLayerTracker.style.display = isNotes ? 'none' : '';
+      stickerLayerTracker.style.display = (isNotes || isTasks) ? 'none' : '';
       stickerLayerNotes.style.display = isNotes ? '' : 'none';
+      stickerLayerTasks.style.display = isTasks ? '' : 'none';
     }
     if(typeof editState !== 'undefined' && editState){ cancelEdit(); }
   }
@@ -2086,10 +2305,10 @@
       var raw = localStorage.getItem(STICKERS_KEY);
       if(raw){
         var parsed = JSON.parse(raw);
-        return { tracker: parsed.tracker || [], notes: parsed.notes || [] };
+        return { tracker: parsed.tracker || [], notes: parsed.notes || [], tasks: parsed.tasks || [] };
       }
     }catch(e){}
-    return { tracker: [], notes: [] };
+    return { tracker: [], notes: [], tasks: [] };
   }
   function saveStickers(){
     try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){}
@@ -2103,6 +2322,7 @@
   var stickerTrash = document.getElementById('stickerTrash');
   var stickerLayerTracker = document.getElementById('stickerLayerTracker');
   var stickerLayerNotes = document.getElementById('stickerLayerNotes');
+  var stickerLayerTasks = document.getElementById('stickerLayerTasks');
   var stickerEditLayer = document.getElementById('stickerEditLayer');
   var stickerRotateHandle = document.getElementById('stickerRotateHandle');
   var stickerResizeHandle = document.getElementById('stickerResizeHandle');
@@ -2114,7 +2334,9 @@
   var editState = null; // { view, sticker, el, orig:{x,y,rot,scale}, live:{x,y,rot,scale} }
 
   function stickerLayerForView(view){
-    return view === 'notes' ? stickerLayerNotes : stickerLayerTracker;
+    if(view === 'notes') return stickerLayerNotes;
+    if(view === 'tasks') return stickerLayerTasks;
+    return stickerLayerTracker;
   }
 
   function findStickerAsset(key){
@@ -2418,6 +2640,7 @@
   function renderAllStickers(){
     renderStickerLayer('tracker');
     renderStickerLayer('notes');
+    renderStickerLayer('tasks');
   }
 
   function addStickerToView(view, key){
@@ -2982,6 +3205,579 @@
       editingNoteId = null;
       renderNotes();
     });
+  });
+
+  /* ================= tasks ================= */
+  var TASKS_KEY = 'money-circle-tasks-v1';
+  var tasks = loadTasks();
+  var TASK_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var TASK_PRIORITIES = [
+    { v: '', label: 'None' }, { v: 'low', label: 'Low' }, { v: 'medium', label: 'Medium' },
+    { v: 'high', label: 'High' }, { v: 'urgent', label: 'Urgent' }
+  ];
+  var TASK_STATUSES = [
+    { v: 'not_started', label: 'Not started' }, { v: 'in_progress', label: 'In progress' }, { v: 'completed', label: 'Completed' }
+  ];
+  var TASK_REPEATS = [
+    { v: '', label: 'None' }, { v: 'daily', label: 'Daily' }, { v: 'weekly', label: 'Weekly' }, { v: 'monthly', label: 'Monthly' }
+  ];
+
+  function loadTasks(){
+    try{
+      var raw = localStorage.getItem(TASKS_KEY);
+      if(raw){ var parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+    }catch(e){}
+    return [];
+  }
+  function saveTasks(){
+    try{ localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }catch(e){}
+    scheduleCloudPush();
+  }
+  function newTaskId(){ return Date.now() + '-' + Math.random().toString(36).slice(2,7); }
+  function optionLabel(list, v){
+    for(var i = 0; i < list.length; i++){ if(list[i].v === v) return list[i].label; }
+    return '';
+  }
+
+  var taskTabs = Array.prototype.slice.call(document.querySelectorAll('#taskTabs .tab-btn'));
+  var taskListWrap = document.getElementById('taskListWrap');
+  var taskCalWrap = document.getElementById('taskCalWrap');
+  var taskCalLabel = document.getElementById('taskCalLabel');
+  var taskCalDays = document.getElementById('taskCalDays');
+  var taskCalPrev = document.getElementById('taskCalPrev');
+  var taskCalNext = document.getElementById('taskCalNext');
+  var taskCalDayLabel = document.getElementById('taskCalDayLabel');
+  var taskCalDayList = document.getElementById('taskCalDayList');
+
+  var taskEditorOverlay = document.getElementById('taskEditorOverlay');
+  var taskTitleInput = document.getElementById('taskTitleInput');
+  var taskCloseBtn = document.getElementById('taskCloseBtn');
+  var taskDueInput = document.getElementById('taskDueInput');
+  var taskTimeInput = document.getElementById('taskTimeInput');
+  var taskPriorityChips = document.getElementById('taskPriorityChips');
+  var taskStatusChips = document.getElementById('taskStatusChips');
+  var taskRepeatChips = document.getElementById('taskRepeatChips');
+  var taskSubCount = document.getElementById('taskSubCount');
+  var taskSubList = document.getElementById('taskSubList');
+  var taskSubInput = document.getElementById('taskSubInput');
+  var taskSubAddBtn = document.getElementById('taskSubAddBtn');
+  var taskBoldBtn = document.getElementById('taskBoldBtn');
+  var taskNotesInput = document.getElementById('taskNotesInput');
+  var taskDeleteBtn = document.getElementById('taskDeleteBtn');
+
+  var taskTab = 'all';
+  var taskExpanded = {};
+  var taskNow = new Date();
+  var taskCalView = { year: taskNow.getFullYear(), month: taskNow.getMonth() };
+  var taskCalSelected = fmtDateKey(taskNow);
+  var editingTaskId = null;
+  var taskSaveTimer = null;
+
+  function taskIsDone(t){ return t.status === 'completed'; }
+  function taskSortKey(t){ return t.dueDate ? (t.dueDate + ' ' + (t.dueTime || '99:99')) : '9999-99-99'; }
+  function sortTasks(list){
+    return list.slice().sort(function(a, b){
+      var d = (taskIsDone(a) ? 1 : 0) - (taskIsDone(b) ? 1 : 0);
+      if(d) return d;
+      var ka = taskSortKey(a), kb = taskSortKey(b);
+      return ka < kb ? -1 : (ka > kb ? 1 : 0);
+    });
+  }
+  function formatTaskTime(hm){
+    var p = (hm || '').split(':');
+    if(p.length < 2) return '';
+    var h = parseInt(p[0], 10);
+    var ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + p[1] + ' ' + ap;
+  }
+  function formatTaskDate(dateStr){
+    var d = parseLocalDate(dateStr);
+    if(!d) return '';
+    var opts = { month: 'short', day: 'numeric' };
+    if(d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+    return d.toLocaleDateString(undefined, opts);
+  }
+  function taskDueLabel(t){
+    if(!t.dueDate) return '';
+    var s = formatTaskDate(t.dueDate);
+    if(t.dueTime) s += ', ' + formatTaskTime(t.dueTime);
+    return s;
+  }
+  function dateIsPast(dateStr, timeStr){
+    if(!dateStr) return false;
+    var now = new Date();
+    var today = fmtDateKey(now);
+    if(dateStr < today) return true;
+    if(dateStr === today && timeStr){
+      return timeStr < (pad2(now.getHours()) + ':' + pad2(now.getMinutes()));
+    }
+    return false;
+  }
+  function taskOverdue(t){ return !taskIsDone(t) && dateIsPast(t.dueDate, t.dueTime); }
+
+  function nextOccurrence(t){
+    var base = parseLocalDate(t.dueDate) || new Date();
+    var n;
+    if(t.repeat === 'daily'){
+      n = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1);
+    } else if(t.repeat === 'weekly'){
+      n = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 7);
+    } else {
+      var lastDay = new Date(base.getFullYear(), base.getMonth() + 2, 0).getDate();
+      n = new Date(base.getFullYear(), base.getMonth() + 1, Math.min(base.getDate(), lastDay));
+    }
+    return {
+      id: newTaskId(),
+      title: t.title,
+      dueDate: formatISODate(n),
+      dueTime: t.dueTime || '',
+      priority: t.priority || '',
+      status: 'not_started',
+      repeat: t.repeat,
+      subtasks: (t.subtasks || []).map(function(s){ return { id: newTaskId(), text: s.text, done: false, dueDate: '' }; }),
+      notes: t.notes || '',
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  // Completing a repeating task creates the next one once (not again if you un-check and re-check).
+  function setTaskStatus(task, status){
+    var wasDone = taskIsDone(task);
+    task.status = status;
+    if(status === 'completed' && !wasDone){
+      task.doneAt = new Date().toISOString();
+      if(task.repeat && !task.repeatSpawned){
+        task.repeatSpawned = true;
+        tasks.push(nextOccurrence(task));
+      }
+    } else if(status !== 'completed'){
+      task.doneAt = null;
+    }
+  }
+
+  // Checking every subtask completes the task; un-checking one re-opens it.
+  function syncStatusFromSubtasks(task){
+    var subs = task.subtasks || [];
+    if(!subs.length) return;
+    var done = subs.filter(function(s){ return s.done; }).length;
+    if(done === subs.length){
+      setTaskStatus(task, 'completed');
+    } else if(taskIsDone(task)){
+      setTaskStatus(task, 'in_progress');
+    } else if(done > 0 && task.status === 'not_started'){
+      setTaskStatus(task, 'in_progress');
+    }
+  }
+
+  function makeTag(cls, text){
+    var span = document.createElement('span');
+    span.className = 'task-tag ' + cls;
+    span.textContent = text;
+    return span;
+  }
+
+  function buildTaskRow(task){
+    var wrap = document.createElement('div');
+    wrap.className = 'task-row-wrap';
+    var subs = task.subtasks || [];
+    var subsDone = subs.filter(function(s){ return s.done; }).length;
+    var expanded = !!taskExpanded[task.id] && subs.length > 0;
+
+    var row = document.createElement('div');
+    row.className = 'task-row' + (taskIsDone(task) ? ' done' : '');
+
+    var expBtn = document.createElement('button');
+    expBtn.type = 'button';
+    expBtn.className = 'task-expand';
+    expBtn.textContent = expanded ? '▾' : '▸';
+    expBtn.disabled = !subs.length;
+    expBtn.setAttribute('aria-label', expanded ? 'Hide subtasks' : 'Show subtasks');
+    expBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      taskExpanded[task.id] = !taskExpanded[task.id];
+      renderTasks();
+    });
+
+    var main = document.createElement('div');
+    main.className = 'task-main';
+    var title = document.createElement('div');
+    title.className = 'task-title' + (task.title ? '' : ' untitled');
+    title.textContent = task.title || 'Untitled task';
+    var meta = document.createElement('div');
+    meta.className = 'task-meta';
+    if(task.dueDate){
+      var date = document.createElement('span');
+      date.className = 'task-date' + (taskOverdue(task) ? ' overdue' : '');
+      date.textContent = (taskOverdue(task) ? 'Overdue · ' : '') + taskDueLabel(task);
+      meta.appendChild(date);
+    }
+    if(task.priority) meta.appendChild(makeTag('tc-' + task.priority, optionLabel(TASK_PRIORITIES, task.priority)));
+    meta.appendChild(makeTag('tc-' + (task.status || 'not_started'), optionLabel(TASK_STATUSES, task.status || 'not_started')));
+    if(subs.length){
+      var sc = document.createElement('span');
+      sc.textContent = '☑ ' + subsDone + '/' + subs.length;
+      meta.appendChild(sc);
+    }
+    if(task.repeat){
+      var rp = document.createElement('span');
+      rp.textContent = '↻ ' + optionLabel(TASK_REPEATS, task.repeat);
+      meta.appendChild(rp);
+    }
+    main.appendChild(title);
+    main.appendChild(meta);
+    main.addEventListener('click', function(){ openTaskEditor(task.id); });
+
+    var chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'task-check';
+    chk.checked = taskIsDone(task);
+    chk.setAttribute('aria-label', 'Mark "' + (task.title || 'task') + '" done');
+    chk.addEventListener('change', function(){
+      if(chk.checked){
+        setTaskStatus(task, 'completed');
+      } else {
+        setTaskStatus(task, subsDone > 0 ? 'in_progress' : 'not_started');
+      }
+      saveTasks();
+      renderTasks();
+    });
+
+    row.appendChild(expBtn);
+    row.appendChild(main);
+    row.appendChild(chk);
+    wrap.appendChild(row);
+
+    if(expanded){
+      var subWrap = document.createElement('div');
+      subWrap.className = 'task-subrows';
+      subs.forEach(function(s){
+        var sr = document.createElement('label');
+        sr.className = 'task-subrow' + (s.done ? ' done' : '');
+        var sc2 = document.createElement('input');
+        sc2.type = 'checkbox';
+        sc2.checked = !!s.done;
+        sc2.addEventListener('change', function(){
+          s.done = sc2.checked;
+          syncStatusFromSubtasks(task);
+          saveTasks();
+          renderTasks();
+        });
+        var txt = document.createElement('span');
+        txt.className = 'txt';
+        txt.textContent = s.text || 'Untitled subtask';
+        sr.appendChild(sc2);
+        sr.appendChild(txt);
+        if(s.dueDate){
+          var sd = document.createElement('span');
+          sd.className = 'sub-date' + (!s.done && dateIsPast(s.dueDate) ? ' overdue' : '');
+          sd.textContent = formatTaskDate(s.dueDate);
+          sr.appendChild(sd);
+        }
+        subWrap.appendChild(sr);
+      });
+      wrap.appendChild(subWrap);
+    }
+    return wrap;
+  }
+
+  function taskEmpty(text){
+    var e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = text;
+    return e;
+  }
+
+  function renderTaskList(container, list, emptyText){
+    container.innerHTML = '';
+    if(!list.length){ container.appendChild(taskEmpty(emptyText)); return; }
+    var card = document.createElement('div');
+    card.className = 'task-list';
+    sortTasks(list).forEach(function(t){ card.appendChild(buildTaskRow(t)); });
+    container.appendChild(card);
+  }
+
+  function renderTaskCalendar(){
+    taskCalLabel.textContent = TASK_MONTHS[taskCalView.month] + ' ' + taskCalView.year;
+    taskCalDays.innerHTML = '';
+    var y = taskCalView.year, m = taskCalView.month;
+    var startWeekday = new Date(y, m, 1).getDay();
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+    var todayKey = fmtDateKey(new Date());
+    for(var i = 0; i < startWeekday; i++){
+      var padEl = document.createElement('div');
+      padEl.className = 'cal-day pad';
+      taskCalDays.appendChild(padEl);
+    }
+    for(var d = 1; d <= daysInMonth; d++){
+      var key = y + '-' + pad2(m + 1) + '-' + pad2(d);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day';
+      if(key === todayKey) btn.classList.add('today');
+      if(key === taskCalSelected) btn.classList.add('selected');
+      var num = document.createElement('div');
+      num.textContent = d;
+      btn.appendChild(num);
+      var dayTasks = tasks.filter(function(t){ return t.dueDate === key; });
+      if(dayTasks.length){
+        var mark = document.createElement('div');
+        var hasLate = dayTasks.some(function(t){ return taskOverdue(t); });
+        mark.className = 'mark' + (hasLate ? ' late' : '');
+        btn.appendChild(mark);
+      }
+      (function(k){
+        btn.addEventListener('click', function(){ taskCalSelected = k; renderTasks(); });
+      })(key);
+      taskCalDays.appendChild(btn);
+    }
+    var sel = parseLocalDate(taskCalSelected);
+    taskCalDayLabel.textContent = sel
+      ? (taskCalSelected === todayKey ? 'Today · ' : '') + sel.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+      : '';
+    var due = tasks.filter(function(t){ return t.dueDate === taskCalSelected; });
+    renderTaskList(taskCalDayList, due, 'Nothing due this day. Tap + to schedule a task here.');
+  }
+
+  function renderTasks(){
+    taskTabs.forEach(function(b){ b.classList.toggle('active', b.dataset.ttab === taskTab); });
+    var isCal = taskTab === 'calendar';
+    taskListWrap.hidden = isCal;
+    taskCalWrap.hidden = !isCal;
+    if(isCal){ renderTaskCalendar(); return; }
+    var list, emptyText;
+    if(taskTab === 'todo'){
+      list = tasks.filter(function(t){ return !taskIsDone(t); });
+      emptyText = 'Nothing left to do.';
+    } else if(taskTab === 'done'){
+      list = tasks.filter(taskIsDone);
+      emptyText = 'No completed tasks yet.';
+    } else {
+      list = tasks;
+      emptyText = 'No tasks yet. Tap + to add your first one.';
+    }
+    renderTaskList(taskListWrap, list, emptyText);
+  }
+
+  taskTabs.forEach(function(b){
+    b.addEventListener('click', function(){ taskTab = b.dataset.ttab; renderTasks(); });
+  });
+  taskCalPrev.addEventListener('click', function(){
+    taskCalView.month--;
+    if(taskCalView.month < 0){ taskCalView.month = 11; taskCalView.year--; }
+    renderTasks();
+  });
+  taskCalNext.addEventListener('click', function(){
+    taskCalView.month++;
+    if(taskCalView.month > 11){ taskCalView.month = 0; taskCalView.year++; }
+    renderTasks();
+  });
+
+  /* ---- task editor ---- */
+  function currentTask(){
+    return tasks.filter(function(t){ return t.id === editingTaskId; })[0];
+  }
+
+  function renderChipRow(container, options, current, onPick, colorPrefix){
+    container.innerHTML = '';
+    options.forEach(function(opt){
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'task-chip' + (opt.v === current ? ' selected' : '');
+      chip.textContent = opt.label;
+      chip.addEventListener('click', function(){ onPick(opt.v); });
+      container.appendChild(chip);
+    });
+  }
+
+  function renderTaskChips(){
+    var t = currentTask();
+    if(!t) return;
+    renderChipRow(taskPriorityChips, TASK_PRIORITIES, t.priority || '', function(v){
+      t.priority = v; saveTasks(); renderTaskChips();
+    });
+    renderChipRow(taskStatusChips, TASK_STATUSES, t.status || 'not_started', function(v){
+      setTaskStatus(t, v); saveTasks(); renderTaskChips();
+    });
+    renderChipRow(taskRepeatChips, TASK_REPEATS, t.repeat || '', function(v){
+      t.repeat = v; t.repeatSpawned = false; saveTasks(); renderTaskChips();
+    });
+    if(t.repeat && !t.dueDate){
+      var hint = document.createElement('div');
+      hint.className = 'task-hint';
+      hint.textContent = 'Set a due date so the next one is scheduled from it. Otherwise it repeats from the day you finish it.';
+      taskRepeatChips.appendChild(hint);
+    }
+  }
+
+  function renderTaskSubtasks(){
+    var t = currentTask();
+    if(!t) return;
+    var subs = t.subtasks || (t.subtasks = []);
+    var done = subs.filter(function(s){ return s.done; }).length;
+    taskSubCount.textContent = subs.length ? (done + '/' + subs.length) : '';
+    taskSubList.innerHTML = '';
+    subs.forEach(function(s){
+      var row = document.createElement('div');
+      row.className = 'task-sub-edit' + (s.done ? ' done' : '');
+
+      var chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = !!s.done;
+      chk.setAttribute('aria-label', 'Subtask done');
+      chk.addEventListener('change', function(){
+        s.done = chk.checked;
+        syncStatusFromSubtasks(t);
+        saveTasks();
+        renderTaskChips();
+        renderTaskSubtasks();
+      });
+
+      var txt = document.createElement('input');
+      txt.type = 'text';
+      txt.className = 'task-sub-text';
+      txt.value = s.text || '';
+      txt.maxLength = 80;
+      txt.placeholder = 'Subtask';
+      txt.addEventListener('input', function(){ s.text = txt.value; scheduleTaskSave(); });
+      txt.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); taskSubInput.focus(); }
+      });
+
+      var date = document.createElement('input');
+      date.type = 'date';
+      date.className = 'task-field task-sub-date';
+      date.value = s.dueDate || '';
+      date.setAttribute('aria-label', 'Subtask due date');
+      date.addEventListener('change', function(){ s.dueDate = date.value; saveTasks(); });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'task-sub-del';
+      del.textContent = '✕';
+      del.setAttribute('aria-label', 'Remove subtask');
+      del.addEventListener('click', function(){
+        t.subtasks = t.subtasks.filter(function(x){ return x.id !== s.id; });
+        syncStatusFromSubtasks(t);
+        saveTasks();
+        renderTaskChips();
+        renderTaskSubtasks();
+      });
+
+      row.appendChild(chk);
+      row.appendChild(txt);
+      row.appendChild(date);
+      row.appendChild(del);
+      taskSubList.appendChild(row);
+    });
+  }
+
+  function addSubtaskFromInput(){
+    var t = currentTask();
+    var text = (taskSubInput.value || '').trim();
+    if(!t || !text){ taskSubInput.focus(); return; }
+    if(!t.subtasks) t.subtasks = [];
+    t.subtasks.push({ id: newTaskId(), text: text, done: false, dueDate: '' });
+    if(taskIsDone(t)) setTaskStatus(t, 'in_progress');
+    taskSubInput.value = '';
+    saveTasks();
+    renderTaskChips();
+    renderTaskSubtasks();
+    taskSubInput.focus();
+  }
+  taskSubAddBtn.addEventListener('click', addSubtaskFromInput);
+  taskSubInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); addSubtaskFromInput(); }
+  });
+
+  function flushTaskEdits(){
+    clearTimeout(taskSaveTimer);
+    var t = currentTask();
+    if(!t) return;
+    t.title = taskTitleInput.value.trim();
+    t.notes = taskNotesInput.innerHTML;
+    saveTasks();
+  }
+  function scheduleTaskSave(){
+    clearTimeout(taskSaveTimer);
+    taskSaveTimer = setTimeout(flushTaskEdits, 400);
+  }
+  taskTitleInput.addEventListener('input', scheduleTaskSave);
+  taskNotesInput.addEventListener('input', scheduleTaskSave);
+  taskDueInput.addEventListener('change', function(){
+    var t = currentTask(); if(!t) return;
+    t.dueDate = taskDueInput.value || '';
+    saveTasks(); renderTaskChips();
+  });
+  taskTimeInput.addEventListener('change', function(){
+    var t = currentTask(); if(!t) return;
+    t.dueTime = taskTimeInput.value || '';
+    saveTasks();
+  });
+  taskBoldBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
+  taskBoldBtn.addEventListener('click', function(){
+    try{ document.execCommand('bold'); }catch(e){}
+    scheduleTaskSave();
+  });
+
+  function openTaskEditor(id){
+    editingTaskId = id;
+    var t = currentTask();
+    if(!t) return;
+    taskTitleInput.value = t.title || '';
+    taskDueInput.value = t.dueDate || '';
+    taskTimeInput.value = t.dueTime || '';
+    taskNotesInput.innerHTML = t.notes || '';
+    taskSubInput.value = '';
+    renderTaskChips();
+    renderTaskSubtasks();
+    taskEditorOverlay.classList.add('open');
+  }
+
+  function closeTaskEditor(){
+    flushTaskEdits();
+    var t = currentTask();
+    // Drop a brand-new task that was opened and closed without anything filled in.
+    if(t && !t.title && !(t.subtasks && t.subtasks.length) && !(taskNotesInput.textContent || '').trim() && !t.dueDate){
+      tasks = tasks.filter(function(x){ return x.id !== t.id; });
+      saveTasks();
+    }
+    taskEditorOverlay.classList.remove('open');
+    editingTaskId = null;
+    renderTasks();
+  }
+  taskCloseBtn.addEventListener('click', closeTaskEditor);
+  taskEditorOverlay.addEventListener('click', function(e){ if(e.target === taskEditorOverlay) closeTaskEditor(); });
+
+  taskDeleteBtn.addEventListener('click', function(){
+    var t = currentTask();
+    if(!t) return;
+    showConfirm('Delete "' + (taskTitleInput.value.trim() || 'Untitled task') + '"?', 'This removes the task and all of its subtasks. This can\'t be undone.', function(){
+      clearTimeout(taskSaveTimer);
+      tasks = tasks.filter(function(x){ return x.id !== t.id; });
+      saveTasks();
+      taskEditorOverlay.classList.remove('open');
+      editingTaskId = null;
+      renderTasks();
+    });
+  });
+
+  addTaskBtnEl.addEventListener('click', function(){
+    var t = {
+      id: newTaskId(),
+      title: '',
+      dueDate: taskTab === 'calendar' ? taskCalSelected : '',
+      dueTime: '',
+      priority: '',
+      status: 'not_started',
+      repeat: '',
+      subtasks: [],
+      notes: '',
+      createdAt: new Date().toISOString()
+    };
+    tasks.push(t);
+    openTaskEditor(t.id);
+    setTimeout(function(){ taskTitleInput.focus(); }, 50);
   });
 
   applyView();
@@ -4265,6 +5061,7 @@
       spendState: spendState,
       themeState: themeState,
       notes: notes,
+      tasks: tasks,
       stickers: stickers,
       updatedAt: new Date().toISOString()
     };
@@ -4295,7 +5092,8 @@
     if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
     if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
     if(data.notes){ notes = data.notes; try{ localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }catch(e){} if(currentView === 'notes') renderNotes(); }
-    if(data.stickers){ stickers = { tracker: data.stickers.tracker || [], notes: data.stickers.notes || [] }; try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){} renderAllStickers(); }
+    if(data.tasks){ tasks = data.tasks; try{ localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }catch(e){} if(currentView === 'tasks' && !editingTaskId) renderTasks(); }
+    if(data.stickers){ stickers = { tracker: data.stickers.tracker || [], notes: data.stickers.notes || [], tasks: data.stickers.tasks || [] }; try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){} renderAllStickers(); }
     if(document.activeElement !== totalInput) totalInput.value = state.total || '';
     processRecurring();
     render(); renderAll(); renderIncomeHistory();
@@ -4317,19 +5115,20 @@
     fbDb.collection('users').doc(user.uid).get().then(function(doc){
       if(!doc.exists){ pushToCloud(); startRealtimeSync(user); return; }
       var data = doc.data() || {};
-      var localHasData = (state.items && state.items.length) || (state.total) || Object.keys(spendState).length || (notes && notes.length);
-      var cloudHasData = (data.state && ((data.state.items && data.state.items.length) || data.state.total)) || (data.spendState && Object.keys(data.spendState).length) || (data.notes && data.notes.length);
+      var localHasData = (state.items && state.items.length) || (state.total) || Object.keys(spendState).length || (notes && notes.length) || (tasks && tasks.length);
+      var cloudHasData = (data.state && ((data.state.items && data.state.items.length) || data.state.total)) || (data.spendState && Object.keys(data.spendState).length) || (data.notes && data.notes.length) || (data.tasks && data.tasks.length);
       var useCloud = true;
       if(cloudHasData && localHasData){
         useCloud = window.confirm('You have data both on this device and in the cloud. Load the cloud version?\n\nOK = use cloud data\nCancel = keep this device\'s data (and upload it to the cloud)');
       }
-      if(useCloud && (data.state || data.spendState || data.themeState || data.notes)){
+      if(useCloud && (data.state || data.spendState || data.themeState || data.notes || data.tasks)){
         lastAppliedRemoteJSON = JSON.stringify(data);
         if(data.state){ state = data.state; if(state.total){ state.total = round2(state.total); } try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
         if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
         if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
         if(data.notes){ notes = data.notes; try{ localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }catch(e){} if(currentView === 'notes') renderNotes(); }
-        if(data.stickers){ stickers = { tracker: data.stickers.tracker || [], notes: data.stickers.notes || [] }; try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){} renderAllStickers(); }
+        if(data.tasks){ tasks = data.tasks; try{ localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }catch(e){} if(currentView === 'tasks' && !editingTaskId) renderTasks(); }
+        if(data.stickers){ stickers = { tracker: data.stickers.tracker || [], notes: data.stickers.notes || [], tasks: data.stickers.tasks || [] }; try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){} renderAllStickers(); }
         totalInput.value = state.total || '';
         processRecurring();
         render(); renderAll(); renderIncomeHistory();
