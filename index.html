@@ -224,6 +224,23 @@
   }
   .nav-menu.open{ display:flex; }
 
+  /* ============ reset button ============ */
+  #resetBtn{
+    position:fixed;
+    top:16px; right:16px;
+    z-index:15;
+    width:38px; height:38px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--coral);
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    font-size:18px;
+    line-height:1;
+  }
+  #resetBtn:hover{ background:var(--coral); border-color:var(--coral); color:#fff; }
+
   /* ============ stickers ============ */
   .sticker-layer{
     position:absolute;
@@ -1335,6 +1352,7 @@
 </div>
 
 <div id="app">
+  <button id="resetBtn" type="button" aria-label="Reset PocketSpace" title="Reset everything">↺</button>
   <div class="sticker-layer" id="stickerLayerTracker"></div>
   <header>
     <div class="eyebrow">PocketSpace</div>
@@ -2032,9 +2050,10 @@
   var confirmYesBtn = document.getElementById('confirmYesBtn');
   var confirmAction = null;
 
-  function showConfirm(title, desc, onConfirm){
+  function showConfirm(title, desc, onConfirm, yesLabel){
     confirmTitle.textContent = title;
     confirmDesc.textContent = desc;
+    confirmYesBtn.textContent = yesLabel || 'Yes, delete';
     confirmAction = onConfirm;
     confirmOverlay.classList.add('open');
   }
@@ -4145,6 +4164,27 @@
   }
 
   renderAll();
+
+  /* ================= reset PocketSpace ================= */
+  function resetPocketSpace(){
+    state = { total: 0, items: [], savings: [], savingsArchiveTotal: 0, paidArchiveTotal: 0, incomeHistory: [] };
+    spendState = {};
+    totalInput.value = '';
+    save();
+    saveSpend();
+    render();
+    renderAll();
+    renderIncomeHistory();
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    showConfirm(
+      'Reset PocketSpace?',
+      'This permanently clears your Amount, all payments, savings goals, money-added history, and logged spending on every device you\'re signed in on. Your Notes, stickers, and theme are kept. This can\'t be undone.',
+      resetPocketSpace,
+      'Yes, reset'
+    );
+  });
 
   /* ================= cloud sync (Firebase) ================= */
   var firebaseConfig = {
