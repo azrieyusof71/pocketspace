@@ -303,6 +303,28 @@
   .tc-not_started{ --tc: var(--ink-faint); }
   .tc-in_progress{ --tc: var(--save); }
   .tc-completed{ --tc: var(--mint); }
+  .task-cards{ display:flex; flex-direction:column; gap:12px; }
+  .task-card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 14px 10px;
+    box-shadow:var(--shadow);
+  }
+  .task-card.done{ opacity:.62; }
+  .task-card-head{ display:flex; align-items:flex-start; gap:10px; }
+  .task-card-head .task-check{ margin-top:3px; }
+  .task-card-title{ font-family:"Fraunces", Georgia, serif; font-size:17px; font-weight:600; line-height:1.3; word-break:break-word; }
+  .task-card-title.untitled{ color:var(--ink-faint); }
+  .task-card.done .task-card-title{ text-decoration:line-through; color:var(--ink-faint); }
+  .task-card-subs{ margin-top:10px; padding-top:6px; border-top:1px solid var(--line); display:flex; flex-direction:column; }
+  .task-card-subs .task-subrow{ padding:6px 0; cursor:pointer; }
+  .task-quick-add{
+    border:none; background:none; outline:none;
+    color:var(--ink); font-family:"IBM Plex Sans", sans-serif; font-size:13.5px;
+    padding:7px 0 4px; width:100%;
+  }
+  .task-quick-add::placeholder{ color:var(--ink-faint); }
   .task-subrows{ display:flex; flex-direction:column; gap:7px; padding:0 14px 12px 42px; }
   .task-subrow{ display:flex; align-items:center; gap:9px; font-size:13.5px; }
   .task-subrow input{ width:16px; height:16px; flex:none; accent-color:var(--mint); cursor:pointer; margin:0; }
@@ -1696,35 +1718,10 @@
   <header>
     <div class="eyebrow">PocketSpace</div>
     <h1>Tasks</h1>
-    <p class="sub">Tap + to add a task. Open one to set a schedule and subtasks.</p>
+    <p class="sub">Make a task like Gym or Work, then add subtasks under it.</p>
   </header>
 
-  <div>
-    <div class="tabs" id="taskTabs">
-      <button class="tab-btn active" type="button" data-ttab="all">All</button>
-      <button class="tab-btn" type="button" data-ttab="todo">To Do</button>
-      <button class="tab-btn" type="button" data-ttab="done">Done</button>
-      <button class="tab-btn" type="button" data-ttab="calendar">Calendar</button>
-    </div>
-
-    <div id="taskListWrap" style="margin-top:12px;"></div>
-
-    <div id="taskCalWrap" style="margin-top:12px;" hidden>
-      <div class="cal-card">
-        <div class="cal-nav">
-          <button id="taskCalPrev" type="button" aria-label="Previous month">‹</button>
-          <div class="label" id="taskCalLabel">Month Year</div>
-          <button id="taskCalNext" type="button" aria-label="Next month">›</button>
-        </div>
-        <div class="cal-weekdays">
-          <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-        </div>
-        <div class="cal-days" id="taskCalDays"></div>
-      </div>
-      <div class="task-day-label" id="taskCalDayLabel"></div>
-      <div id="taskCalDayList"></div>
-    </div>
-  </div>
+  <div id="taskListWrap"></div>
 </div>
 
 <button id="addTaskBtn" type="button" aria-label="Add task" style="display:none;">+</button>
@@ -3210,7 +3207,6 @@
   /* ================= tasks ================= */
   var TASKS_KEY = 'money-circle-tasks-v1';
   var tasks = loadTasks();
-  var TASK_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var TASK_PRIORITIES = [
     { v: '', label: 'None' }, { v: 'low', label: 'Low' }, { v: 'medium', label: 'Medium' },
     { v: 'high', label: 'High' }, { v: 'urgent', label: 'Urgent' }
@@ -3239,16 +3235,7 @@
     return '';
   }
 
-  var taskTabs = Array.prototype.slice.call(document.querySelectorAll('#taskTabs .tab-btn'));
   var taskListWrap = document.getElementById('taskListWrap');
-  var taskCalWrap = document.getElementById('taskCalWrap');
-  var taskCalLabel = document.getElementById('taskCalLabel');
-  var taskCalDays = document.getElementById('taskCalDays');
-  var taskCalPrev = document.getElementById('taskCalPrev');
-  var taskCalNext = document.getElementById('taskCalNext');
-  var taskCalDayLabel = document.getElementById('taskCalDayLabel');
-  var taskCalDayList = document.getElementById('taskCalDayList');
-
   var taskEditorOverlay = document.getElementById('taskEditorOverlay');
   var taskTitleInput = document.getElementById('taskTitleInput');
   var taskCloseBtn = document.getElementById('taskCloseBtn');
@@ -3265,17 +3252,13 @@
   var taskNotesInput = document.getElementById('taskNotesInput');
   var taskDeleteBtn = document.getElementById('taskDeleteBtn');
 
-  var taskTab = 'all';
-  var taskExpanded = {};
-  var taskNow = new Date();
-  var taskCalView = { year: taskNow.getFullYear(), month: taskNow.getMonth() };
-  var taskCalSelected = fmtDateKey(taskNow);
   var editingTaskId = null;
   var taskSaveTimer = null;
 
   function taskIsDone(t){ return t.status === 'completed'; }
   function taskSortKey(t){ return t.dueDate ? (t.dueDate + ' ' + (t.dueTime || '99:99')) : '9999-99-99'; }
   function sortTasks(list){
+    // Unfinished first, soonest due date first; tasks without a date keep the order you made them.
     return list.slice().sort(function(a, b){
       var d = (taskIsDone(a) ? 1 : 0) - (taskIsDone(b) ? 1 : 0);
       if(d) return d;
@@ -3316,7 +3299,9 @@
   }
   function taskOverdue(t){ return !taskIsDone(t) && dateIsPast(t.dueDate, t.dueTime); }
 
-  function nextOccurrence(t){
+  // A repeating task never duplicates: finishing it moves the same task to its next date
+  // and clears its subtasks so it's ready to do again.
+  function rollTaskForward(t){
     var base = parseLocalDate(t.dueDate) || new Date();
     var n;
     if(t.repeat === 'daily'){
@@ -3327,33 +3312,19 @@
       var lastDay = new Date(base.getFullYear(), base.getMonth() + 2, 0).getDate();
       n = new Date(base.getFullYear(), base.getMonth() + 1, Math.min(base.getDate(), lastDay));
     }
-    return {
-      id: newTaskId(),
-      title: t.title,
-      dueDate: formatISODate(n),
-      dueTime: t.dueTime || '',
-      priority: t.priority || '',
-      status: 'not_started',
-      repeat: t.repeat,
-      subtasks: (t.subtasks || []).map(function(s){ return { id: newTaskId(), text: s.text, done: false, dueDate: '' }; }),
-      notes: t.notes || '',
-      createdAt: new Date().toISOString()
-    };
+    t.dueDate = formatISODate(n);
+    t.status = 'not_started';
+    t.doneAt = null;
+    (t.subtasks || []).forEach(function(s){ s.done = false; });
   }
 
-  // Completing a repeating task creates the next one once (not again if you un-check and re-check).
   function setTaskStatus(task, status){
-    var wasDone = taskIsDone(task);
-    task.status = status;
-    if(status === 'completed' && !wasDone){
-      task.doneAt = new Date().toISOString();
-      if(task.repeat && !task.repeatSpawned){
-        task.repeatSpawned = true;
-        tasks.push(nextOccurrence(task));
-      }
-    } else if(status !== 'completed'){
-      task.doneAt = null;
+    if(status === 'completed' && task.repeat){
+      rollTaskForward(task);
+      return;
     }
+    task.status = status;
+    task.doneAt = status === 'completed' ? new Date().toISOString() : null;
   }
 
   // Checking every subtask completes the task; un-checking one re-opens it.
@@ -3377,32 +3348,26 @@
     return span;
   }
 
-  function buildTaskRow(task){
-    var wrap = document.createElement('div');
-    wrap.className = 'task-row-wrap';
+  function addSubtaskTo(task, text){
+    if(!task.subtasks) task.subtasks = [];
+    task.subtasks.push({ id: newTaskId(), text: text, done: false, dueDate: '' });
+    if(taskIsDone(task)) setTaskStatus(task, 'in_progress');
+  }
+
+  function buildTaskCard(task){
     var subs = task.subtasks || [];
     var subsDone = subs.filter(function(s){ return s.done; }).length;
-    var expanded = !!taskExpanded[task.id] && subs.length > 0;
 
-    var row = document.createElement('div');
-    row.className = 'task-row' + (taskIsDone(task) ? ' done' : '');
+    var card = document.createElement('div');
+    card.className = 'task-card' + (taskIsDone(task) ? ' done' : '');
 
-    var expBtn = document.createElement('button');
-    expBtn.type = 'button';
-    expBtn.className = 'task-expand';
-    expBtn.textContent = expanded ? '▾' : '▸';
-    expBtn.disabled = !subs.length;
-    expBtn.setAttribute('aria-label', expanded ? 'Hide subtasks' : 'Show subtasks');
-    expBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      taskExpanded[task.id] = !taskExpanded[task.id];
-      renderTasks();
-    });
+    var head = document.createElement('div');
+    head.className = 'task-card-head';
 
     var main = document.createElement('div');
     main.className = 'task-main';
     var title = document.createElement('div');
-    title.className = 'task-title' + (task.title ? '' : ' untitled');
+    title.className = 'task-card-title' + (task.title ? '' : ' untitled');
     title.textContent = task.title || 'Untitled task';
     var meta = document.createElement('div');
     meta.className = 'task-meta';
@@ -3416,7 +3381,7 @@
     meta.appendChild(makeTag('tc-' + (task.status || 'not_started'), optionLabel(TASK_STATUSES, task.status || 'not_started')));
     if(subs.length){
       var sc = document.createElement('span');
-      sc.textContent = '☑ ' + subsDone + '/' + subs.length;
+      sc.textContent = subsDone + '/' + subs.length + ' done';
       meta.appendChild(sc);
     }
     if(task.repeat){
@@ -3443,142 +3408,83 @@
       renderTasks();
     });
 
-    row.appendChild(expBtn);
-    row.appendChild(main);
-    row.appendChild(chk);
-    wrap.appendChild(row);
+    head.appendChild(main);
+    head.appendChild(chk);
+    card.appendChild(head);
 
-    if(expanded){
-      var subWrap = document.createElement('div');
-      subWrap.className = 'task-subrows';
-      subs.forEach(function(s){
-        var sr = document.createElement('label');
-        sr.className = 'task-subrow' + (s.done ? ' done' : '');
-        var sc2 = document.createElement('input');
-        sc2.type = 'checkbox';
-        sc2.checked = !!s.done;
-        sc2.addEventListener('change', function(){
-          s.done = sc2.checked;
-          syncStatusFromSubtasks(task);
-          saveTasks();
-          renderTasks();
-        });
-        var txt = document.createElement('span');
-        txt.className = 'txt';
-        txt.textContent = s.text || 'Untitled subtask';
-        sr.appendChild(sc2);
-        sr.appendChild(txt);
-        if(s.dueDate){
-          var sd = document.createElement('span');
-          sd.className = 'sub-date' + (!s.done && dateIsPast(s.dueDate) ? ' overdue' : '');
-          sd.textContent = formatTaskDate(s.dueDate);
-          sr.appendChild(sd);
-        }
-        subWrap.appendChild(sr);
+    var subWrap = document.createElement('div');
+    subWrap.className = 'task-card-subs';
+    subs.forEach(function(s){
+      var sr = document.createElement('label');
+      sr.className = 'task-subrow' + (s.done ? ' done' : '');
+      var sc2 = document.createElement('input');
+      sc2.type = 'checkbox';
+      sc2.checked = !!s.done;
+      sc2.addEventListener('change', function(){
+        s.done = sc2.checked;
+        syncStatusFromSubtasks(task);
+        saveTasks();
+        renderTasks();
       });
-      wrap.appendChild(subWrap);
-    }
-    return wrap;
-  }
-
-  function taskEmpty(text){
-    var e = document.createElement('div');
-    e.className = 'empty';
-    e.textContent = text;
-    return e;
-  }
-
-  function renderTaskList(container, list, emptyText){
-    container.innerHTML = '';
-    if(!list.length){ container.appendChild(taskEmpty(emptyText)); return; }
-    var card = document.createElement('div');
-    card.className = 'task-list';
-    sortTasks(list).forEach(function(t){ card.appendChild(buildTaskRow(t)); });
-    container.appendChild(card);
-  }
-
-  function renderTaskCalendar(){
-    taskCalLabel.textContent = TASK_MONTHS[taskCalView.month] + ' ' + taskCalView.year;
-    taskCalDays.innerHTML = '';
-    var y = taskCalView.year, m = taskCalView.month;
-    var startWeekday = new Date(y, m, 1).getDay();
-    var daysInMonth = new Date(y, m + 1, 0).getDate();
-    var todayKey = fmtDateKey(new Date());
-    for(var i = 0; i < startWeekday; i++){
-      var padEl = document.createElement('div');
-      padEl.className = 'cal-day pad';
-      taskCalDays.appendChild(padEl);
-    }
-    for(var d = 1; d <= daysInMonth; d++){
-      var key = y + '-' + pad2(m + 1) + '-' + pad2(d);
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'cal-day';
-      if(key === todayKey) btn.classList.add('today');
-      if(key === taskCalSelected) btn.classList.add('selected');
-      var num = document.createElement('div');
-      num.textContent = d;
-      btn.appendChild(num);
-      var dayTasks = tasks.filter(function(t){ return t.dueDate === key; });
-      if(dayTasks.length){
-        var mark = document.createElement('div');
-        var hasLate = dayTasks.some(function(t){ return taskOverdue(t); });
-        mark.className = 'mark' + (hasLate ? ' late' : '');
-        btn.appendChild(mark);
+      var txt = document.createElement('span');
+      txt.className = 'txt';
+      txt.textContent = s.text || 'Untitled subtask';
+      sr.appendChild(sc2);
+      sr.appendChild(txt);
+      if(s.dueDate){
+        var sd = document.createElement('span');
+        sd.className = 'sub-date' + (!s.done && dateIsPast(s.dueDate) ? ' overdue' : '');
+        sd.textContent = formatTaskDate(s.dueDate);
+        sr.appendChild(sd);
       }
-      (function(k){
-        btn.addEventListener('click', function(){ taskCalSelected = k; renderTasks(); });
-      })(key);
-      taskCalDays.appendChild(btn);
-    }
-    var sel = parseLocalDate(taskCalSelected);
-    taskCalDayLabel.textContent = sel
-      ? (taskCalSelected === todayKey ? 'Today · ' : '') + sel.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-      : '';
-    var due = tasks.filter(function(t){ return t.dueDate === taskCalSelected; });
-    renderTaskList(taskCalDayList, due, 'Nothing due this day. Tap + to schedule a task here.');
+      subWrap.appendChild(sr);
+    });
+
+    var quick = document.createElement('input');
+    quick.type = 'text';
+    quick.className = 'task-quick-add';
+    quick.placeholder = '+ Add subtask';
+    quick.maxLength = 80;
+    quick.setAttribute('aria-label', 'Add a subtask to ' + (task.title || 'this task'));
+    quick.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      var text = (quick.value || '').trim();
+      if(!text) return;
+      addSubtaskTo(task, text);
+      saveTasks();
+      renderTasks();
+      var again = taskListWrap.querySelector('.task-card[data-id="' + task.id + '"] .task-quick-add');
+      if(again) again.focus();
+    });
+    subWrap.appendChild(quick);
+    card.appendChild(subWrap);
+
+    card.setAttribute('data-id', task.id);
+    return card;
   }
 
   function renderTasks(){
-    taskTabs.forEach(function(b){ b.classList.toggle('active', b.dataset.ttab === taskTab); });
-    var isCal = taskTab === 'calendar';
-    taskListWrap.hidden = isCal;
-    taskCalWrap.hidden = !isCal;
-    if(isCal){ renderTaskCalendar(); return; }
-    var list, emptyText;
-    if(taskTab === 'todo'){
-      list = tasks.filter(function(t){ return !taskIsDone(t); });
-      emptyText = 'Nothing left to do.';
-    } else if(taskTab === 'done'){
-      list = tasks.filter(taskIsDone);
-      emptyText = 'No completed tasks yet.';
-    } else {
-      list = tasks;
-      emptyText = 'No tasks yet. Tap + to add your first one.';
+    taskListWrap.innerHTML = '';
+    if(!tasks.length){
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'No tasks yet. Tap + to make one, like Gym or Work, then add subtasks under it.';
+      taskListWrap.appendChild(e);
+      return;
     }
-    renderTaskList(taskListWrap, list, emptyText);
+    var list = document.createElement('div');
+    list.className = 'task-cards';
+    sortTasks(tasks).forEach(function(t){ list.appendChild(buildTaskCard(t)); });
+    taskListWrap.appendChild(list);
   }
-
-  taskTabs.forEach(function(b){
-    b.addEventListener('click', function(){ taskTab = b.dataset.ttab; renderTasks(); });
-  });
-  taskCalPrev.addEventListener('click', function(){
-    taskCalView.month--;
-    if(taskCalView.month < 0){ taskCalView.month = 11; taskCalView.year--; }
-    renderTasks();
-  });
-  taskCalNext.addEventListener('click', function(){
-    taskCalView.month++;
-    if(taskCalView.month > 11){ taskCalView.month = 0; taskCalView.year++; }
-    renderTasks();
-  });
 
   /* ---- task editor ---- */
   function currentTask(){
     return tasks.filter(function(t){ return t.id === editingTaskId; })[0];
   }
 
-  function renderChipRow(container, options, current, onPick, colorPrefix){
+  function renderChipRow(container, options, current, onPick){
     container.innerHTML = '';
     options.forEach(function(opt){
       var chip = document.createElement('button');
@@ -3593,19 +3499,22 @@
   function renderTaskChips(){
     var t = currentTask();
     if(!t) return;
+    taskDueInput.value = t.dueDate || '';
     renderChipRow(taskPriorityChips, TASK_PRIORITIES, t.priority || '', function(v){
       t.priority = v; saveTasks(); renderTaskChips();
     });
     renderChipRow(taskStatusChips, TASK_STATUSES, t.status || 'not_started', function(v){
-      setTaskStatus(t, v); saveTasks(); renderTaskChips();
+      setTaskStatus(t, v); saveTasks(); renderTaskChips(); renderTaskSubtasks();
     });
     renderChipRow(taskRepeatChips, TASK_REPEATS, t.repeat || '', function(v){
-      t.repeat = v; t.repeatSpawned = false; saveTasks(); renderTaskChips();
+      t.repeat = v; saveTasks(); renderTaskChips();
     });
-    if(t.repeat && !t.dueDate){
+    if(t.repeat){
       var hint = document.createElement('div');
       hint.className = 'task-hint';
-      hint.textContent = 'Set a due date so the next one is scheduled from it. Otherwise it repeats from the day you finish it.';
+      hint.textContent = t.dueDate
+        ? 'When you finish it, this task moves to its next date and its subtasks reset.'
+        : 'Set a due date so the next one is scheduled from it. Otherwise it repeats from the day you finish it.';
       taskRepeatChips.appendChild(hint);
     }
   }
@@ -3676,9 +3585,7 @@
     var t = currentTask();
     var text = (taskSubInput.value || '').trim();
     if(!t || !text){ taskSubInput.focus(); return; }
-    if(!t.subtasks) t.subtasks = [];
-    t.subtasks.push({ id: newTaskId(), text: text, done: false, dueDate: '' });
-    if(taskIsDone(t)) setTaskStatus(t, 'in_progress');
+    addSubtaskTo(t, text);
     taskSubInput.value = '';
     saveTasks();
     renderTaskChips();
@@ -3725,7 +3632,6 @@
     var t = currentTask();
     if(!t) return;
     taskTitleInput.value = t.title || '';
-    taskDueInput.value = t.dueDate || '';
     taskTimeInput.value = t.dueTime || '';
     taskNotesInput.innerHTML = t.notes || '';
     taskSubInput.value = '';
@@ -3766,7 +3672,7 @@
     var t = {
       id: newTaskId(),
       title: '',
-      dueDate: taskTab === 'calendar' ? taskCalSelected : '',
+      dueDate: '',
       dueTime: '',
       priority: '',
       status: 'not_started',
