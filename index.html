@@ -1481,6 +1481,215 @@
     .sheet{ animation:none; }
     #pie{ transition:none; }
   }
+
+  /* ============ bottom navigation ============ */
+  :root{ --bnav-h:64px; }
+  #themeBtn, #navMenuBtn, #stickerMenuBtn, #resetBtn, .nav-menu{ display:none !important; }
+  #app, #notesApp, #tasksApp{ padding-bottom:calc(var(--bnav-h) + 70px + env(safe-area-inset-bottom, 0px)); }
+  #addNoteBtn, #addTaskBtn{ bottom:calc(var(--bnav-h) + 18px + env(safe-area-inset-bottom, 0px)); }
+  .sticker-trash{ bottom:calc(var(--bnav-h) + 22px + env(safe-area-inset-bottom, 0px)); }
+  .bottom-nav{
+    position:fixed; left:0; right:0; bottom:0;
+    z-index:9;
+    display:flex; justify-content:center;
+    background:color-mix(in srgb, var(--paper-raised) 86%, transparent);
+    -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-nav-inner{ display:flex; width:100%; max-width:460px; }
+  .bnav-item{
+    flex:1; position:relative;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:6px 2px 4px;
+    border:none; background:none; border-radius:12px;
+    color:var(--ink-faint);
+    font-family:"IBM Plex Sans", sans-serif; font-size:11px; font-weight:600;
+    cursor:pointer;
+    transition:color .2s ease;
+  }
+  .bnav-item svg{ width:22px; height:22px; transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .bnav-item:hover{ color:var(--ink-soft); }
+  .bnav-item.active{ color:var(--gold-deep); }
+  .bnav-item.active svg{ transform:translateY(-1px) scale(1.1); }
+  .bnav-item::before{
+    content:""; position:absolute; top:-7px; left:50%;
+    width:26px; height:3px; border-radius:0 0 3px 3px;
+    background:var(--gold);
+    transform:translateX(-50%) scaleX(0);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .bnav-item.active::before{ transform:translateX(-50%) scaleX(1); }
+
+  .settings-list{ display:flex; flex-direction:column; gap:8px; }
+  .settings-row{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px;
+    border-radius:12px; border:1px solid var(--line);
+    background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans", sans-serif; text-align:left; cursor:pointer;
+  }
+  .settings-row:hover{ border-color:var(--gold); }
+  .settings-row .ico{ width:34px; height:34px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; background:color-mix(in srgb, var(--gold) 14%, var(--paper-raised)); }
+  .settings-row .txt{ flex:1; min-width:0; }
+  .settings-row .t{ font-size:14.5px; font-weight:600; }
+  .settings-row .d{ font-size:12px; color:var(--ink-faint); margin-top:1px; }
+  .settings-row.danger .ico{ background:color-mix(in srgb, var(--coral) 16%, var(--paper-raised)); color:var(--coral); }
+  .settings-row.danger .t{ color:var(--coral); }
+  .settings-row.danger:hover{ border-color:var(--coral); }
+
+  /* ============ pie: tappable slices, legend, sweep-in ============ */
+  @property --sweep{ syntax:'<angle>'; inherits:false; initial-value:360deg; }
+  #pie{ background:var(--ring-empty); cursor:pointer; transition:none; }
+  #pieRing{
+    position:absolute; inset:0; border-radius:50%;
+    background:var(--ring-empty);
+    -webkit-mask:conic-gradient(#000 var(--sweep), transparent 0);
+    mask:conic-gradient(#000 var(--sweep), transparent 0);
+  }
+  #pieRing.sweeping{ transition:--sweep 1.1s cubic-bezier(.22,1,.36,1); }
+  #pie::before{ z-index:1; }
+  #pie.pulse{ animation:piePulse .45s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes piePulse{ 0%{ transform:scale(1); } 40%{ transform:scale(1.03); } 100%{ transform:scale(1); } }
+  #pie-center .label{ max-width:136px; margin:0 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:color .2s; }
+  #pie-center.showing-slice .label{ color:var(--gold-deep); }
+  .pie-legend{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px 8px; max-width:420px; margin-top:-4px; }
+  .pie-legend:empty{ display:none; }
+  .legend-item{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px 4px 7px;
+    border-radius:999px; border:1px solid var(--line);
+    background:var(--paper-raised); color:var(--ink-soft);
+    font-family:"IBM Plex Sans", sans-serif; font-size:12px; font-weight:500;
+    cursor:pointer;
+    transition:border-color .2s, transform .2s;
+  }
+  .legend-item:hover{ border-color:var(--gold); }
+  .legend-item.active{ border-color:var(--gold); color:var(--ink); transform:translateY(-1px); }
+  .legend-sw{ width:10px; height:10px; border-radius:50%; flex:none; box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent); }
+  .legend-amt{ font-family:"IBM Plex Mono", monospace; font-size:11.5px; color:var(--ink-faint); font-variant-numeric:tabular-nums; }
+
+  /* ============ stat cards ============ */
+  .stat .v{ font-size:min(16px, 3.9vw); overflow-wrap:anywhere; }
+  .stat .s{ font-size:11px; color:var(--ink-faint); margin-top:3px; }
+  .stats .stat{ padding:12px 13px; }
+
+  /* ============ little animations ============ */
+  .pop{ animation:pop .34s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.28); } 100%{ transform:scale(1); } }
+  /* opening animation: every section pops up one after another */
+  body.intro #app > :not(.sticker-layer):not(#resetBtn),
+  body.intro #notesApp > :not(.sticker-layer),
+  body.intro #tasksApp > :not(.sticker-layer){
+    animation:popIn .6s cubic-bezier(.34,1.45,.64,1) both;
+    animation-delay:calc(var(--i, 0) * 75ms);
+  }
+  body.intro .bottom-nav{ animation:navUp .55s cubic-bezier(.22,1,.36,1) both; }
+  body.intro .task-card, body.intro .save-item, body.intro .item, body.intro .save-total, body.intro .budget-row, body.intro .legend-item, body.intro .today-row{
+    animation:popIn .5s cubic-bezier(.34,1.45,.64,1) both;
+    animation-delay:calc(var(--i, 0) * 75ms + var(--j, 0) * 45ms + 120ms);
+  }
+  @keyframes popIn{ from{ opacity:0; transform:translateY(16px) scale(.95); } to{ opacity:1; transform:none; } }
+  @keyframes navUp{ from{ transform:translateY(100%); } to{ transform:none; } }
+  @keyframes riseIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .save-bar-fill{ transition:width .6s cubic-bezier(.22,1,.36,1); }
+
+  @media (prefers-reduced-motion: reduce){
+    #pieRing.sweeping{ transition:none; }
+    #pie.pulse, .pop, body.intro *{ animation:none !important; }
+    .toast{ transition:none; }
+    .bnav-item svg, .bnav-item::before{ transition:none; }
+  }
+
+  /* ============ today summary ============ */
+  .today-card{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:16px;
+    padding:14px 16px 8px; box-shadow:var(--shadow);
+  }
+  .today-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px; }
+  .today-head h2{ font-family:"Fraunces", Georgia, serif; font-size:17px; margin:0; font-weight:600; }
+  .today-date{ font-size:12px; color:var(--ink-faint); font-weight:600; }
+  .today-row{
+    display:flex; align-items:center; gap:12px; width:100%;
+    padding:10px 0; border:none; border-top:1px solid var(--line); background:none;
+    color:var(--ink); font-family:"IBM Plex Sans", sans-serif; font-size:14px; text-align:left; cursor:pointer;
+  }
+  .today-head + .today-row{ border-top:none; }
+  .today-row .ico{
+    width:32px; height:32px; flex:none; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+    background:color-mix(in srgb, var(--tc, var(--gold)) 15%, var(--paper-raised));
+  }
+  .today-row .txt{ flex:1; min-width:0; }
+  .today-row .main{ font-weight:600; }
+  .today-row .sub2{ font-size:12px; color:var(--ink-faint); margin-top:1px; }
+  .today-row .main .warn{ color:var(--coral); }
+  .today-row .chev{ color:var(--ink-faint); font-size:16px; }
+
+  /* ============ budgets ============ */
+  #addBudgetBtn{
+    width:38px; height:38px; border-radius:50%;
+    background:var(--gold); color:var(--paper); border:none;
+    font-size:21px; line-height:1; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:var(--shadow);
+  }
+  #budgetList{ display:flex; flex-direction:column; gap:9px; }
+  .budget-row{
+    display:block; width:100%; text-align:left;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:13px;
+    padding:12px 14px; cursor:pointer; color:var(--ink); font-family:"IBM Plex Sans", sans-serif;
+  }
+  .budget-row:hover{ border-color:var(--gold); }
+  .budget-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .budget-name{ font-size:14.5px; font-weight:600; }
+  .budget-amt{ font-family:"IBM Plex Mono", monospace; font-size:13.5px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .budget-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+  .budget-row.near .budget-sub{ color:var(--gold-deep); font-weight:600; }
+  .budget-row.over .budget-sub, .budget-row.over .budget-amt{ color:var(--coral); font-weight:600; }
+  .budget-row .save-bar-fill{ background:var(--mint); }
+  .budget-row.near .save-bar-fill{ background:var(--gold); }
+  .budget-row.over .save-bar-fill{ background:var(--coral); }
+  .budget-month{ font-size:12px; color:var(--ink-faint); font-weight:600; margin-left:8px; }
+
+  /* ============ category chips ============ */
+  .cat-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .cat-chip{
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    border-radius:999px; padding:6px 12px;
+    font-family:"IBM Plex Sans", sans-serif; font-size:13px; font-weight:600; cursor:pointer;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .cat-chip:active{ transform:scale(.94); }
+  .cat-chip.selected{ border-color:var(--gold); background:color-mix(in srgb, var(--gold) 14%, var(--paper)); color:var(--gold-deep); }
+
+  /* ============ undo toast ============ */
+  .toast{
+    position:fixed; left:50%; z-index:30;
+    bottom:calc(var(--bnav-h) + 18px + env(safe-area-inset-bottom, 0px));
+    transform:translate(-50%, 24px); opacity:0; pointer-events:none;
+    width:max-content; max-width:calc(100% - 32px);
+    display:flex; align-items:center; gap:14px;
+    padding:11px 12px 11px 16px; border-radius:14px; overflow:hidden;
+    background:var(--ink); color:var(--paper);
+    font-family:"IBM Plex Sans", sans-serif; font-size:14px;
+    box-shadow:0 10px 30px -10px rgba(0,0,0,.45);
+    transition:opacity .2s ease, transform .3s cubic-bezier(.34,1.45,.64,1);
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); pointer-events:auto; }
+  .toast-msg{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .toast-undo{
+    flex:none; background:none; border:none; color:var(--gold); cursor:pointer;
+    font-family:"IBM Plex Sans", sans-serif; font-size:14px; font-weight:700; padding:4px 6px;
+  }
+  :root[data-theme="dark"] .toast-undo{ color:#111; }
+  .toast-bar{ position:absolute; left:0; bottom:0; height:3px; background:var(--gold); width:100%; transform-origin:left; }
+  .toast.show .toast-bar{ animation:toastBar 5s linear forwards; }
+  @keyframes toastBar{ from{ transform:scaleX(1); } to{ transform:scaleX(0); } }
+
+  /* ============ currency list ============ */
+  .currency-list{ display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow-y:auto; }
+  .theme-opt .cur-sym{ width:34px; flex:none; font-family:"IBM Plex Mono", monospace; font-weight:600; color:var(--gold-deep); }
+  .settings-row .cur-now{ font-family:"IBM Plex Mono", monospace; font-size:13px; color:var(--ink-soft); font-weight:600; }
 </style>
 
 </head>
@@ -1520,13 +1729,21 @@
     <p class="sub">Enter what you have, slice it into what you owe.</p>
   </header>
 
+  <div class="today-card" id="todayCard">
+    <div class="today-head"><h2>Today</h2><span class="today-date" id="todayDate"></span></div>
+    <div id="todayRows"></div>
+  </div>
+
   <div class="ring-wrap">
     <div id="pie">
+      <div id="pieRing"></div>
       <div id="pie-center">
         <div class="label">Amount</div>
         <div class="amount" id="leftAmount">$0</div>
       </div>
     </div>
+
+    <div class="pie-legend" id="pieLegend" aria-label="What each color means"></div>
 
     <input id="totalInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01" hidden>
 
@@ -1542,12 +1759,19 @@
 
   <div class="stats">
     <div class="stat">
-      <div class="k">Allocated</div>
-      <div class="v" id="allocatedStat">$0</div>
+      <div class="k">Spent</div>
+      <div class="v" id="spentStat">$0</div>
+      <div class="s" id="spentStatSub"></div>
     </div>
     <div class="stat">
-      <div class="k">Used</div>
-      <div class="v" id="pctStat">0%</div>
+      <div class="k">Saved</div>
+      <div class="v" id="savedStat">$0</div>
+      <div class="s" id="savedStatSub"></div>
+    </div>
+    <div class="stat">
+      <div class="k">Bills left</div>
+      <div class="v" id="billsLeftStat">$0</div>
+      <div class="s" id="billsLeftSub"></div>
     </div>
   </div>
 
@@ -1567,7 +1791,15 @@
     <div id="list" style="margin-top:12px;"></div>
   </div>
 
-  <div>
+  <div id="budgetSection">
+    <div class="list-header">
+      <h2>Budgets <span class="budget-month" id="budgetMonthLabel"></span></h2>
+      <button id="addBudgetBtn" type="button" aria-label="Add a monthly budget">+</button>
+    </div>
+    <div id="budgetList" style="margin-top:12px;"></div>
+  </div>
+
+  <div id="spendingSection">
     <div class="list-header">
       <h2>Spending</h2>
     </div>
@@ -1737,6 +1969,55 @@
 </div>
 
 <button id="addTaskBtn" type="button" aria-label="Add task" style="display:none;">+</button>
+
+<nav class="bottom-nav" aria-label="Main">
+  <div class="bottom-nav-inner">
+    <button type="button" class="bnav-item" data-view="tracker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.5A8.5 8.5 0 1 1 10.5 3.5v10z"/><path d="M14 3.2a8.5 8.5 0 0 1 6.8 6.8H14z"/></svg>
+      <span>PocketSpace</span>
+    </button>
+    <button type="button" class="bnav-item" data-view="notes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.5h10l4 4v13H5z"/><path d="M14.5 3.5v4.5H19"/><path d="M8.5 13h7M8.5 16.5h4.5"/></svg>
+      <span>Notes</span>
+    </button>
+    <button type="button" class="bnav-item" data-view="tasks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.2l2.8 2.8L16.2 9"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button type="button" class="bnav-item" id="bnavSettings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/></svg>
+      <span>Settings</span>
+    </button>
+  </div>
+</nav>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <h3>Settings</h3>
+    <div class="settings-list">
+      <button type="button" class="settings-row" id="settingsThemeBtn">
+        <span class="ico">🎨</span>
+        <span class="txt"><span class="t" style="display:block;">Appearance</span><span class="d" style="display:block;">Theme, colors and background pattern</span></span>
+      </button>
+      <button type="button" class="settings-row" id="settingsCurrencyBtn">
+        <span class="ico">💱</span>
+        <span class="txt"><span class="t" style="display:block;">Currency</span><span class="d" style="display:block;">Symbol shown on every amount</span></span>
+        <span class="cur-now" id="settingsCurrencyNow"></span>
+      </button>
+      <button type="button" class="settings-row" id="settingsStickerBtn">
+        <span class="ico">✨</span>
+        <span class="txt"><span class="t" style="display:block;">Add a sticker</span><span class="d" style="display:block;">Place a sticker on the page you're on</span></span>
+      </button>
+      <button type="button" class="settings-row danger" id="settingsResetBtn">
+        <span class="ico">↺</span>
+        <span class="txt"><span class="t" style="display:block;">Reset PocketSpace</span><span class="d" style="display:block;">Clear money, bills, savings and spending</span></span>
+      </button>
+    </div>
+    <div class="sheet-actions">
+      <button id="settingsDoneBtn" type="button" class="neutral">Done</button>
+    </div>
+  </div>
+</div>
 
 <div class="overlay note-editor-overlay" id="taskEditorOverlay">
   <div class="note-paper">
@@ -1935,12 +2216,49 @@
   </div>
 </div>
 
+<div class="overlay" id="budgetOverlay">
+  <div class="sheet">
+    <h3 id="budgetSheetTitle">New monthly budget</h3>
+    <div class="field">
+      <label>Category</label>
+      <div class="cat-chips" id="budgetCatChips"></div>
+      <input id="budgetNameInput" type="text" placeholder="Or type your own…" maxlength="24">
+    </div>
+    <div class="field">
+      <label id="budgetLimitLabel">Limit per month</label>
+      <input id="budgetLimitInput" type="number" inputmode="decimal" placeholder="0" min="0" step="0.01">
+    </div>
+    <div class="sheet-actions">
+      <button id="budgetCancelBtn" type="button" class="neutral">Cancel</button>
+      <button id="budgetSaveBtn" type="button" style="background:var(--gold); color:var(--paper);">Save</button>
+    </div>
+    <button id="budgetDeleteBtn" type="button" class="note-delete-btn" style="align-self:center;">Delete this budget</button>
+  </div>
+</div>
+
+<div class="overlay" id="currencyOverlay">
+  <div class="sheet">
+    <h3>Currency</h3>
+    <div class="currency-list" id="currencyList"></div>
+    <div class="sheet-actions">
+      <button id="currencyDoneBtn" type="button" class="neutral">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="toast-msg" id="toastMsg"></span>
+  <button type="button" class="toast-undo" id="toastUndo">Undo</button>
+  <span class="toast-bar"></span>
+</div>
+
 <div class="overlay" id="spendOverlay">
   <div class="sheet">
     <h3>Add spending</h3>
     <div class="field">
       <label>What for</label>
-      <input id="spendNameInput" type="text" placeholder="Food, Transport…" maxlength="24">
+      <div class="cat-chips" id="spendCatChips"></div>
+      <input id="spendNameInput" type="text" placeholder="Or type your own…" maxlength="24">
     </div>
     <div class="field">
       <label>Amount</label>
@@ -2156,6 +2474,7 @@
   var navMenuBtn = document.getElementById('navMenuBtn');
   var navMenu = document.getElementById('navMenu');
   var navMenuItems = Array.prototype.slice.call(document.querySelectorAll('.nav-menu-item'));
+  var bnavItems = Array.prototype.slice.call(document.querySelectorAll('.bnav-item[data-view]'));
   var appView = document.getElementById('app');
   var notesAppView = document.getElementById('notesApp');
   var addNoteBtnEl = document.getElementById('addNoteBtn');
@@ -2175,6 +2494,10 @@
     navMenuItems.forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.view === currentView);
     });
+    bnavItems.forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.view === currentView);
+      if(btn.dataset.view === currentView) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
+    });
     if(isNotes && typeof renderNotes === 'function') renderNotes();
     if(isTasks && typeof renderTasks === 'function') renderTasks();
     if(typeof stickerLayerTracker !== 'undefined' && stickerLayerTracker){
@@ -2184,6 +2507,17 @@
     }
     if(typeof editState !== 'undefined' && editState){ cancelEdit(); }
   }
+
+  bnavItems.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(currentView === btn.dataset.view){ window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      currentView = btn.dataset.view;
+      try{ localStorage.setItem(VIEW_KEY, currentView); }catch(e){}
+      applyView();
+      window.scrollTo(0, 0);
+      if(typeof playIntro === 'function') playIntro();
+    });
+  });
 
   navMenuBtn.addEventListener('click', function(){
     navMenu.classList.toggle('open');
@@ -2218,8 +2552,12 @@
   var totalInput = document.getElementById('totalInput');
   var pie = document.getElementById('pie');
   var leftAmount = document.getElementById('leftAmount');
-  var allocatedStat = document.getElementById('allocatedStat');
-  var pctStat = document.getElementById('pctStat');
+  var spentStat = document.getElementById('spentStat');
+  var spentStatSub = document.getElementById('spentStatSub');
+  var savedStat = document.getElementById('savedStat');
+  var savedStatSub = document.getElementById('savedStatSub');
+  var billsLeftStat = document.getElementById('billsLeftStat');
+  var billsLeftSub = document.getElementById('billsLeftSub');
   var list = document.getElementById('list');
   var addBtn = document.getElementById('addBtn');
   var overlay = document.getElementById('overlay');
@@ -3144,6 +3482,7 @@
     if(e.target && e.target.type === 'checkbox'){
       var line = e.target.closest ? e.target.closest('.note-chk-line') : null;
       if(e.target.checked){
+        var popEl = e.target; popEl.classList.remove('pop'); void popEl.offsetWidth; popEl.classList.add('pop'); setTimeout(function(){ popEl.classList.remove('pop'); scheduleNoteSave(); }, 400);
         e.target.setAttribute('checked', 'checked');
         if(line) line.classList.add('done');
       } else {
@@ -3206,7 +3545,7 @@
   noteDeleteBtn.addEventListener('click', function(){
     var note = notes.filter(function(n){ return n.id === editingNoteId; })[0];
     if(!note) return;
-    showConfirm('Delete "' + (note.title || 'Untitled') + '"?', 'This removes the sticky note and everything written on it. This can\'t be undone.', function(){
+    withUndo('Deleted note "' + (note.title || 'Untitled') + '"', function(){
       clearTimeout(noteSaveTimer);
       notes = notes.filter(function(n){ return n.id !== note.id; });
       saveNotes();
@@ -3409,8 +3748,10 @@
     chk.type = 'checkbox';
     chk.className = 'task-check';
     chk.checked = taskIsDone(task);
+    if(takePop('task:' + task.id)) chk.classList.add('pop');
     chk.setAttribute('aria-label', 'Mark "' + (task.title || 'task') + '" done');
     chk.addEventListener('change', function(){
+      if(chk.checked) popKey = 'task:' + task.id;
       if(chk.checked){
         setTaskStatus(task, 'completed');
       } else {
@@ -3432,8 +3773,10 @@
       var sc2 = document.createElement('input');
       sc2.type = 'checkbox';
       sc2.checked = !!s.done;
+      if(takePop('sub:' + s.id)) sc2.classList.add('pop');
       sc2.addEventListener('change', function(){
         s.done = sc2.checked;
+        if(s.done) popKey = 'sub:' + s.id;
         syncStatusFromSubtasks(task);
         saveTasks();
         renderTasks();
@@ -3477,6 +3820,7 @@
   }
 
   function renderTasks(){
+    if(typeof renderToday === 'function') renderToday();
     taskListWrap.innerHTML = '';
     if(!tasks.length){
       var e = document.createElement('div');
@@ -3545,9 +3889,11 @@
       var chk = document.createElement('input');
       chk.type = 'checkbox';
       chk.checked = !!s.done;
+      if(takePop('sub:' + s.id)) chk.classList.add('pop');
       chk.setAttribute('aria-label', 'Subtask done');
       chk.addEventListener('change', function(){
         s.done = chk.checked;
+        if(s.done) popKey = 'sub:' + s.id;
         syncStatusFromSubtasks(t);
         saveTasks();
         renderTaskChips();
@@ -3670,7 +4016,8 @@
   taskDeleteBtn.addEventListener('click', function(){
     var t = currentTask();
     if(!t) return;
-    showConfirm('Delete "' + (taskTitleInput.value.trim() || 'Untitled task') + '"?', 'This removes the task and all of its subtasks. This can\'t be undone.', function(){
+    flushTaskEdits();
+    withUndo('Deleted task "' + (t.title || 'Untitled task') + '"', function(){
       clearTimeout(taskSaveTimer);
       tasks = tasks.filter(function(x){ return x.id !== t.id; });
       saveTasks();
@@ -3957,10 +4304,30 @@
     refreshPayMonthUI();
   });
 
+  var CURRENCIES = [
+    { code: 'MYR', sym: 'RM', name: 'Malaysian Ringgit' },
+    { code: 'USD', sym: '$', name: 'US Dollar' },
+    { code: 'SGD', sym: 'S$', name: 'Singapore Dollar' },
+    { code: 'BND', sym: 'B$', name: 'Brunei Dollar' },
+    { code: 'IDR', sym: 'Rp', name: 'Indonesian Rupiah' },
+    { code: 'THB', sym: '฿', name: 'Thai Baht' },
+    { code: 'PHP', sym: '₱', name: 'Philippine Peso' },
+    { code: 'AUD', sym: 'A$', name: 'Australian Dollar' },
+    { code: 'GBP', sym: '£', name: 'British Pound' },
+    { code: 'EUR', sym: '€', name: 'Euro' },
+    { code: 'JPY', sym: '¥', name: 'Japanese Yen' },
+    { code: 'INR', sym: '₹', name: 'Indian Rupee' }
+  ];
+  function currentCurrency(){
+    if(!CURRENCIES) return { code: 'USD', sym: '$', name: 'US Dollar' };
+    var code = (themeState && themeState.currency) || 'USD';
+    for(var i = 0; i < CURRENCIES.length; i++){ if(CURRENCIES[i].code === code) return CURRENCIES[i]; }
+    return CURRENCIES[1];
+  }
   function fmt(n){
     var v = Math.round((n||0)*100)/100;
-    var s = v.toLocaleString(undefined,{maximumFractionDigits:2});
-    return '$' + s;
+    var s = Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
+    return (v < 0 ? '-' : '') + currentCurrency().sym + s;
   }
 
   function toHexColor(c){
@@ -4083,6 +4450,80 @@
     if(changed) save();
   }
 
+  /* ---- pie: animated amount, tappable slices, legend ---- */
+  var pieRing = document.getElementById('pieRing');
+  var pieLegend = document.getElementById('pieLegend');
+  var pieCenter = document.getElementById('pie-center');
+  var pieCenterLabel = document.querySelector('#pie-center .label');
+  var pieSegments = [];
+  var shownLeft = 0, targetLeft = 0, amountAnimId = null, sliceTimer = null;
+  var pieHasSwept = false, lastPieGradient = '';
+  var popKey = null;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var UNPAID_COLOR = 'color-mix(in srgb, var(--ink-faint) 45%, var(--ring-empty))';
+
+  function takePop(key){
+    if(popKey && popKey === key){ popKey = null; return true; }
+    return false;
+  }
+
+  function animateAmount(to){
+    targetLeft = to;
+    if(sliceTimer) return; // a tapped slice is on show; restoreCenter() puts the amount back
+    cancelAnimationFrame(amountAnimId);
+    leftAmount.className = 'amount' + (to < 0 ? ' negative' : '');
+    var from = shownLeft;
+    if(reduceMotion || Math.abs(from - to) < 0.005){ shownLeft = to; leftAmount.textContent = fmt(to); return; }
+    var start = null, dur = 750;
+    function step(ts){
+      if(start === null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      shownLeft = from + (to - from) * e;
+      leftAmount.textContent = fmt(shownLeft);
+      if(p < 1){ amountAnimId = requestAnimationFrame(step); }
+      else { shownLeft = to; leftAmount.textContent = fmt(to); }
+    }
+    amountAnimId = requestAnimationFrame(step);
+  }
+
+  function setLegendActive(key){
+    Array.prototype.forEach.call(pieLegend.children, function(el){
+      el.classList.toggle('active', el.dataset.key === key);
+    });
+  }
+  function restoreCenter(){
+    clearTimeout(sliceTimer);
+    sliceTimer = null;
+    pieCenter.classList.remove('showing-slice');
+    pieCenterLabel.textContent = 'Amount';
+    setLegendActive(null);
+    shownLeft = targetLeft;
+    leftAmount.textContent = fmt(targetLeft);
+    leftAmount.className = 'amount' + (targetLeft < 0 ? ' negative' : '');
+  }
+  function showSlice(seg){
+    cancelAnimationFrame(amountAnimId);
+    clearTimeout(sliceTimer);
+    pieCenter.classList.add('showing-slice');
+    pieCenterLabel.textContent = seg.name;
+    leftAmount.textContent = fmt(seg.amount);
+    leftAmount.className = 'amount';
+    setLegendActive(seg.key);
+    sliceTimer = setTimeout(restoreCenter, 2800);
+  }
+  pie.addEventListener('click', function(e){
+    var r = pie.getBoundingClientRect();
+    var dx = e.clientX - (r.left + r.width / 2);
+    var dy = e.clientY - (r.top + r.height / 2);
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if(dist < (r.width / 2) * 0.72){ if(sliceTimer) restoreCenter(); return; }
+    var ang = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+    for(var i = 0; i < pieSegments.length; i++){
+      if(ang >= pieSegments[i].start && ang < pieSegments[i].end){ showSlice(pieSegments[i]); return; }
+    }
+  });
+
   function render(){
     var total = round2(state.total || 0);
     var items = state.items || [];
@@ -4095,54 +4536,81 @@
     var spent = spendGrandTotal();
     var leftOver = round2(total - paidTotal - spent - savingsTotal);
 
-    allocatedStat.textContent = fmt(allocated);
-    pctStat.textContent = total > 0 ? Math.round(((paidTotal+spent+savingsTotal)/total)*100) + '%' : '0%';
-    leftAmount.textContent = fmt(leftOver);
-    leftAmount.className = 'amount' + (leftOver < 0 ? ' negative' : '');
+    var spentAll = round2(paidTotal + spent);
+    spentStat.textContent = fmt(spentAll);
+    spentStatSub.textContent = total > 0 ? (Math.round(spentAll / total * 100) + '% of your money') : 'Bills + daily';
+    savedStat.textContent = fmt(savingsTotal);
+    savedStatSub.textContent = savings.length ? (savings.length + (savings.length === 1 ? ' goal' : ' goals')) : 'No goals yet';
+    var unpaidCount = items.filter(function(i){ return !isItemPaidCurrent(i); }).length;
+    billsLeftStat.textContent = fmt(unpaidTotal);
+    billsLeftSub.textContent = items.length ? (unpaidCount ? (unpaidCount + ' unpaid') : 'All paid ✓') : 'No bills yet';
+    if(sliceTimer) restoreCenter();
+    animateAmount(leftOver);
+
+    var basis = total > 0 ? Math.max(total, allocated+spent+savingsTotal) : Math.max(allocated+spent+savingsTotal, 1);
+    var COLORS = getColors();
+    var archiveTotal = (state.paidArchiveTotal || 0) + pastRecurringPaid;
+    var segs = [];
+    function addSeg(key, name, amount, color){
+      amount = round2(amount);
+      if(amount > 0) segs.push({ key: key, name: name, amount: amount, color: color });
+    }
+    items.forEach(function(item, idx){
+      if(isItemPaidCurrent(item)) addSeg('bill:' + item.id, item.name, item.amount, item.color || COLORS[idx % COLORS.length]);
+    });
+    addSeg('archive', 'Earlier bills', archiveTotal, 'var(--gold-deep)');
+    addSeg('savings', 'Savings', savingsTotal, 'var(--save)');
+    addSeg('spending', 'Spending', spent, 'var(--mint)');
+    addSeg('unpaid', 'Unpaid bills', unpaidTotal, UNPAID_COLOR);
+    var usedSum = segs.reduce(function(s2, g){ return s2 + g.amount; }, 0);
+    if(total > 0) addSeg('free', 'Free to use', basis - usedSum, 'var(--ring-empty)');
+    var degTotal = segs.reduce(function(s2, g){ return s2 + g.amount; }, 0);
 
     var stops = [];
     var cursor = 0;
-    var basis = total > 0 ? Math.max(total, allocated+spent+savingsTotal) : Math.max(allocated+spent+savingsTotal, 1);
-    var COLORS = getColors();
-
-    items.forEach(function(item, idx){
-      if(!isItemPaidCurrent(item)) return;
-      var frac = basis > 0 ? item.amount / basis : 0;
-      var deg = frac * 360;
-      var color = COLORS[idx % COLORS.length];
-      stops.push(color + ' ' + cursor.toFixed(3) + 'deg ' + (cursor+deg).toFixed(3) + 'deg');
+    segs.forEach(function(seg){
+      var deg = degTotal > 0 ? (seg.amount / degTotal) * 360 : 0;
+      seg.start = cursor;
+      seg.end = cursor + deg;
+      stops.push(seg.color + ' ' + cursor.toFixed(3) + 'deg ' + (cursor + deg).toFixed(3) + 'deg');
       cursor += deg;
     });
-    var archiveTotal = (state.paidArchiveTotal || 0) + pastRecurringPaid;
-    if(archiveTotal){
-      var archiveFrac = basis > 0 ? archiveTotal / basis : 0;
-      var archiveDeg = archiveFrac * 360;
-      stops.push('var(--gold-deep) ' + cursor.toFixed(3) + 'deg ' + (cursor+archiveDeg).toFixed(3) + 'deg');
-      cursor += archiveDeg;
+    pieSegments = segs;
+    var gradient = stops.length ? ('conic-gradient(' + stops.join(',') + ')') : 'var(--ring-empty)';
+    pieRing.style.background = gradient;
+    if(!pieHasSwept){
+      pieHasSwept = true;
+      if(!reduceMotion && stops.length){
+        pieRing.style.setProperty('--sweep', '0deg');
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          pieRing.classList.add('sweeping');
+          pieRing.style.setProperty('--sweep', '360deg');
+          setTimeout(function(){ pieRing.classList.remove('sweeping'); }, 1200);
+        }); });
+      }
+    } else if(gradient !== lastPieGradient && !reduceMotion){
+      pie.classList.remove('pulse');
+      void pie.offsetWidth;
+      pie.classList.add('pulse');
     }
-    if(savingsTotal > 0){
-      var savingsFrac = basis > 0 ? savingsTotal / basis : 0;
-      var savingsDeg = savingsFrac * 360;
-      stops.push('var(--save) ' + cursor.toFixed(3) + 'deg ' + (cursor+savingsDeg).toFixed(3) + 'deg');
-      cursor += savingsDeg;
-    }
-    if(spent > 0){
-      var spentFrac = basis > 0 ? spent / basis : 0;
-      var spentDeg = spentFrac * 360;
-      stops.push('var(--mint) ' + cursor.toFixed(3) + 'deg ' + (cursor+spentDeg).toFixed(3) + 'deg');
-      cursor += spentDeg;
-    }
-    if(unpaidTotal > 0){
-      var unpaidFrac = basis > 0 ? unpaidTotal / basis : 0;
-      var unpaidDeg = unpaidFrac * 360;
-      stops.push('var(--ring-empty) ' + cursor.toFixed(3) + 'deg ' + (cursor+unpaidDeg).toFixed(3) + 'deg');
-      cursor += unpaidDeg;
-    }
-    if(cursor < 360){
-      var leftColor = leftOver < 0 ? 'var(--coral)' : 'var(--ring-empty)';
-      stops.push(leftColor + ' ' + cursor.toFixed(3) + 'deg 360deg');
-    }
-    pie.style.background = stops.length ? ('conic-gradient(' + stops.join(',') + ')') : 'var(--ring-empty)';
+    lastPieGradient = gradient;
+
+    pieLegend.innerHTML = '';
+    segs.forEach(function(seg){
+      var b2 = document.createElement('button');
+      b2.type = 'button';
+      b2.className = 'legend-item';
+      b2.dataset.key = seg.key;
+      b2.innerHTML = '<span class="legend-sw"></span><span class="legend-name"></span><span class="legend-amt"></span>';
+      b2.querySelector('.legend-sw').style.background = seg.color;
+      b2.querySelector('.legend-name').textContent = seg.name;
+      b2.querySelector('.legend-amt').textContent = fmt(seg.amount);
+      b2.addEventListener('click', function(){ showSlice(seg); });
+      pieLegend.appendChild(b2);
+    });
+
+    renderBudgets();
+    renderToday();
 
     savingsList.innerHTML = '';
     if(savings.length === 0){
@@ -4219,7 +4687,7 @@
           var desc = (goal.saved > 0)
             ? 'You\'ve already put ' + fmt(goal.saved) + ' toward this — that stays deducted from Amount. Deleting only removes the goal itself, not the money.'
             : 'You haven\'t put any money toward this yet, so nothing changes in Amount — this just removes the goal.';
-          showConfirm('Delete "' + goal.name + '"?', desc, function(){
+          withUndo('Deleted "' + goal.name + '"', function(){
             if(goal.saved){
               state.savingsArchiveTotal = round2((state.savingsArchiveTotal || 0) + goal.saved);
             }
@@ -4272,11 +4740,13 @@
         row.querySelector('.dot-input').addEventListener('change', function(){
           save(); render();
         });
+        if(takePop('pay:' + item.id)) row.querySelector('.paid-btn').classList.add('pop');
         row.querySelector('.paid-btn').addEventListener('click', function(){
           if(item.recurring){
             openPayMonthPicker(item);
           } else {
             item.paid = !item.paid;
+            if(item.paid) popKey = 'pay:' + item.id;
             save(); render();
           }
         });
@@ -4306,7 +4776,7 @@
           } else {
             desc += 'It hasn\'t been paid yet, so nothing will change in Amount — this just removes it from your list.';
           }
-          showConfirm('Delete "' + item.name + '"?', desc, function(){
+          withUndo('Deleted "' + item.name + '"', function(){
             if(histPaid > 0){
               state.paidArchiveTotal = (state.paidArchiveTotal || 0) + histPaid;
             }
@@ -4532,8 +5002,11 @@
     }
   });
 
+  var spendCatChips = document.getElementById('spendCatChips');
+  spendNameInput.addEventListener('input', function(){ markCatChips(spendCatChips, spendNameInput.value); });
   addSpendBtn.addEventListener('click', function(){
     spendNameInput.value=''; spendAmountInput.value='';
+    renderCatChips(spendCatChips, spendNameInput, function(){ spendAmountInput.focus(); });
     spendOverlay.classList.add('open');
     setTimeout(function(){ spendNameInput.focus(); }, 50);
   });
@@ -4544,6 +5017,7 @@
     var amt = parseFloat(spendAmountInput.value);
     if(!name){ spendNameInput.focus(); return; }
     if(!amt || amt <= 0){ spendAmountInput.focus(); return; }
+    name = canonCategory(name);
     if(!spendState[selectedDate]) spendState[selectedDate] = [];
     spendState[selectedDate].push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), name:name, amount:amt });
     saveSpend();
@@ -4573,14 +5047,16 @@
         var row = document.createElement('div');
         row.className = 'spend-row';
         row.innerHTML = '<div class="name"></div><div class="amt"></div><button class="del" aria-label="Remove">✕</button>';
-        row.querySelector('.name').textContent = entry.name;
+        row.querySelector('.name').textContent = canonCategory(entry.name);
         row.querySelector('.amt').textContent = fmt(entry.amount);
         row.querySelector('.del').addEventListener('click', function(){
-          spendState[selectedDate] = spendState[selectedDate].filter(function(x){ return x.id !== entry.id; });
-          if(spendState[selectedDate].length === 0) delete spendState[selectedDate];
-          saveSpend();
-          render();
-          renderAll();
+          withUndo('Deleted "' + entry.name + '" ' + fmt(entry.amount), function(){
+            spendState[selectedDate] = spendState[selectedDate].filter(function(x){ return x.id !== entry.id; });
+            if(spendState[selectedDate].length === 0) delete spendState[selectedDate];
+            saveSpend();
+            render();
+            renderAll();
+          });
         });
         dayList.appendChild(row);
       });
@@ -4616,12 +5092,7 @@
   }
 
   function renderTopCats(container, keys, limit){
-    var byName = {};
-    keys.forEach(function(k){
-      (spendState[k]||[]).forEach(function(e){
-        byName[e.name] = (byName[e.name]||0) + e.amount;
-      });
-    });
+    var byName = categoryTotalsForKeys(keys);
     var names = Object.keys(byName).sort(function(a,b){ return byName[b]-byName[a]; }).slice(0, limit);
     container.innerHTML = '';
     if(names.length === 0){
@@ -4649,11 +5120,14 @@
     });
   }
 
+  // "food", "Food " and "FOOD" all count as one category.
   function categoryTotalsForKeys(keys){
     var byName = {};
+    var cats = spendCategories();
     keys.forEach(function(k){
       (spendState[k]||[]).forEach(function(e){
-        byName[e.name] = (byName[e.name]||0) + e.amount;
+        var label = canonCategory(e.name, cats);
+        byName[label] = (byName[label]||0) + e.amount;
       });
     });
     return byName;
@@ -4896,7 +5370,7 @@
 
   /* ================= reset PocketSpace ================= */
   function resetPocketSpace(){
-    state = { total: 0, items: [], savings: [], savingsArchiveTotal: 0, paidArchiveTotal: 0, incomeHistory: [] };
+    state = { total: 0, items: [], savings: [], savingsArchiveTotal: 0, paidArchiveTotal: 0, incomeHistory: [], budgets: state.budgets || [] };
     spendState = {};
     totalInput.value = '';
     save();
@@ -4909,11 +5383,344 @@
   document.getElementById('resetBtn').addEventListener('click', function(){
     showConfirm(
       'Reset PocketSpace?',
-      'This permanently clears your Amount, all payments, savings goals, money-added history, and logged spending on every device you\'re signed in on. Your Notes, stickers, and theme are kept. This can\'t be undone.',
+      'This permanently clears your Amount, all payments, savings goals, money-added history, and logged spending on every device you\'re signed in on. Your Notes, Tasks, budgets, stickers, theme and currency are kept. This can\'t be undone.',
       resetPocketSpace,
       'Yes, reset'
     );
   });
+
+  /* ================= spending categories ================= */
+  function defaultCategories(){ return ['Food', 'Transport', 'Groceries', 'Shopping', 'Bills', 'Fun', 'Health', 'Other']; }
+  function catKey(n){ return (n || '').trim().toLowerCase(); }
+  // Defaults first, then any other names you've used or budgeted, most-used first.
+  function spendCategories(){
+    var seen = {}, out = [];
+    defaultCategories().forEach(function(c){ seen[catKey(c)] = true; out.push(c); });
+    var counts = {}, firstName = {};
+    Object.keys(spendState).forEach(function(k){
+      (spendState[k] || []).forEach(function(e){
+        var key = catKey(e.name);
+        if(!key || seen[key]) return;
+        counts[key] = (counts[key] || 0) + 1;
+        if(!firstName[key]) firstName[key] = e.name.trim();
+      });
+    });
+    (state.budgets || []).forEach(function(b){
+      var key = catKey(b.category);
+      if(key && !seen[key] && !counts[key]){ counts[key] = 1; firstName[key] = b.category; }
+    });
+    Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; }).slice(0, 10).forEach(function(key){
+      seen[key] = true; out.push(firstName[key]);
+    });
+    return out;
+  }
+  function canonCategory(name, list){
+    var key = catKey(name);
+    if(!key) return '';
+    list = list || spendCategories();
+    for(var i = 0; i < list.length; i++){ if(catKey(list[i]) === key) return list[i]; }
+    var t = name.trim();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  function markCatChips(container, value){
+    var key = catKey(value);
+    Array.prototype.forEach.call(container.children, function(c){ c.classList.toggle('selected', catKey(c.textContent) === key); });
+  }
+  function renderCatChips(container, input, onPick){
+    container.innerHTML = '';
+    spendCategories().forEach(function(c){
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'cat-chip';
+      chip.textContent = c;
+      chip.addEventListener('click', function(){
+        input.value = c;
+        markCatChips(container, c);
+        if(onPick) onPick(c);
+      });
+      container.appendChild(chip);
+    });
+    markCatChips(container, input.value);
+  }
+
+  /* ================= monthly budgets ================= */
+  var budgetList = document.getElementById('budgetList');
+  var budgetMonthLabel = document.getElementById('budgetMonthLabel');
+  var budgetOverlay = document.getElementById('budgetOverlay');
+  var budgetSheetTitle = document.getElementById('budgetSheetTitle');
+  var budgetCatChips = document.getElementById('budgetCatChips');
+  var budgetNameInput = document.getElementById('budgetNameInput');
+  var budgetLimitInput = document.getElementById('budgetLimitInput');
+  var budgetLimitLabel = document.getElementById('budgetLimitLabel');
+  var budgetDeleteBtn = document.getElementById('budgetDeleteBtn');
+  var editingBudgetId = null;
+
+  function categorySpentThisMonth(category){
+    var now = new Date();
+    var prefix = now.getFullYear() + '-' + pad2(now.getMonth() + 1);
+    var key = catKey(category), sum = 0;
+    Object.keys(spendState).forEach(function(k){
+      if(k.indexOf(prefix) !== 0) return;
+      (spendState[k] || []).forEach(function(e){ if(catKey(e.name) === key) sum += e.amount; });
+    });
+    return round2(sum);
+  }
+
+  function renderBudgets(){
+    if(!budgetList) return; // runs again once everything below has loaded
+    var budgets = state.budgets || [];
+    var now = new Date();
+    budgetMonthLabel.textContent = now.toLocaleDateString(undefined, { month: 'long' });
+    budgetList.innerHTML = '';
+    if(!budgets.length){
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'No budgets yet. Tap + to set a monthly limit, like Food ' + fmt(400) + '.';
+      budgetList.appendChild(e);
+      return;
+    }
+    budgets.forEach(function(b, idx){
+      var spentB = categorySpentThisMonth(b.category);
+      var limit = b.limit || 0;
+      var pct = limit > 0 ? spentB / limit : 0;
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'budget-row' + (pct > 1 ? ' over' : (pct >= 0.8 ? ' near' : ''));
+      row.style.setProperty('--j', idx);
+      row.innerHTML = '<div class="budget-top"><span class="budget-name"></span><span class="budget-amt"></span></div>' +
+        '<div class="save-bar-track"><div class="save-bar-fill"></div></div><div class="budget-sub"></div>';
+      row.querySelector('.budget-name').textContent = b.category;
+      row.querySelector('.budget-amt').textContent = fmt(spentB) + ' / ' + fmt(limit);
+      row.querySelector('.save-bar-fill').style.width = Math.min(100, Math.round(pct * 100)) + '%';
+      row.querySelector('.budget-sub').textContent = pct > 1
+        ? (fmt(spentB - limit) + ' over budget')
+        : (fmt(limit - spentB) + ' left' + (pct >= 0.8 ? ' · almost there' : ''));
+      row.addEventListener('click', function(){ openBudgetSheet(b); });
+      budgetList.appendChild(row);
+    });
+  }
+
+  function openBudgetSheet(b){
+    editingBudgetId = b ? b.id : null;
+    budgetSheetTitle.textContent = b ? ('Edit "' + b.category + '" budget') : 'New monthly budget';
+    budgetNameInput.value = b ? b.category : '';
+    budgetLimitInput.value = b ? b.limit : '';
+    budgetLimitLabel.textContent = 'Limit per month (' + currentCurrency().sym + ')';
+    budgetDeleteBtn.style.display = b ? '' : 'none';
+    renderCatChips(budgetCatChips, budgetNameInput, function(){ budgetLimitInput.focus(); });
+    budgetOverlay.classList.add('open');
+  }
+  function closeBudgetSheet(){ budgetOverlay.classList.remove('open'); editingBudgetId = null; }
+  budgetNameInput.addEventListener('input', function(){ markCatChips(budgetCatChips, budgetNameInput.value); });
+  document.getElementById('addBudgetBtn').addEventListener('click', function(){ openBudgetSheet(null); });
+  document.getElementById('budgetCancelBtn').addEventListener('click', closeBudgetSheet);
+  budgetOverlay.addEventListener('click', function(e){ if(e.target === budgetOverlay) closeBudgetSheet(); });
+  document.getElementById('budgetSaveBtn').addEventListener('click', function(){
+    var name = canonCategory(budgetNameInput.value);
+    var limit = round2(parseFloat(budgetLimitInput.value));
+    if(!name){ budgetNameInput.focus(); return; }
+    if(!limit || limit <= 0){ budgetLimitInput.focus(); return; }
+    if(!state.budgets) state.budgets = [];
+    var clash = state.budgets.filter(function(x){ return catKey(x.category) === catKey(name) && x.id !== editingBudgetId; })[0];
+    if(clash){
+      clash.limit = limit;
+    } else if(editingBudgetId){
+      var cur = state.budgets.filter(function(x){ return x.id === editingBudgetId; })[0];
+      if(cur){ cur.category = name; cur.limit = limit; }
+    } else {
+      state.budgets.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2,7), category: name, limit: limit });
+    }
+    save(); render();
+    closeBudgetSheet();
+  });
+  budgetDeleteBtn.addEventListener('click', function(){
+    var id = editingBudgetId;
+    var b = (state.budgets || []).filter(function(x){ return x.id === id; })[0];
+    if(!b) return;
+    closeBudgetSheet();
+    withUndo('Deleted "' + b.category + '" budget', function(){
+      state.budgets = state.budgets.filter(function(x){ return x.id !== id; });
+      save(); render();
+    });
+  });
+
+  /* ================= today summary ================= */
+  function daysUntil(dateStr){
+    var d = parseLocalDate(dateStr);
+    if(!d) return null;
+    var t = new Date(); t.setHours(0,0,0,0);
+    return Math.round((d.getTime() - t.getTime()) / 86400000);
+  }
+  function renderToday(){
+    var rowsEl = document.getElementById('todayRows');
+    if(!rowsEl || !CURRENCIES) return; // runs again once everything has loaded
+    var now = new Date();
+    var todayKey = fmtDateKey(now);
+    document.getElementById('todayDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    rowsEl.innerHTML = '';
+
+    function addRow(icon, color, mainHtml, sub, onTap){
+      var r = document.createElement('button');
+      r.type = 'button';
+      r.className = 'today-row';
+      r.style.setProperty('--tc', color);
+      r.style.setProperty('--j', rowsEl.children.length);
+      r.innerHTML = '<span class="ico"></span><span class="txt"><div class="main"></div><div class="sub2"></div></span><span class="chev">›</span>';
+      r.querySelector('.ico').textContent = icon;
+      r.querySelector('.main').innerHTML = mainHtml;
+      r.querySelector('.sub2').textContent = sub;
+      r.addEventListener('click', onTap);
+      rowsEl.appendChild(r);
+    }
+
+    // Tasks
+    var openTasks = (typeof tasks !== 'undefined' && tasks) ? tasks.filter(function(t){ return t.status !== 'completed'; }) : [];
+    var dueToday = openTasks.filter(function(t){ return t.dueDate === todayKey; }).length;
+    var overdueTasks = openTasks.filter(function(t){ return t.dueDate && t.dueDate < todayKey; }).length;
+    var taskMain = dueToday ? (dueToday + (dueToday === 1 ? ' task' : ' tasks') + ' due today') : 'No tasks due today';
+    if(overdueTasks) taskMain += ' · <span class="warn">' + overdueTasks + ' overdue</span>';
+    var taskSub = openTasks.length ? (openTasks.length + ' open ' + (openTasks.length === 1 ? 'task' : 'tasks') + ' in total') : 'You\'re all caught up';
+    addRow('☑', 'var(--save)', taskMain, taskSub, function(){ goToView('tasks'); });
+
+    // Bills
+    var upcoming = (state.items || []).filter(function(i){ return i.dueDate && !isItemPaidCurrent(i); })
+      .map(function(i){ return { item: i, days: daysUntil(i.dueDate) }; })
+      .filter(function(x){ return x.days !== null && x.days <= 7; })
+      .sort(function(a, b){ return a.days - b.days; });
+    var billMain, billSub;
+    if(upcoming.length){
+      var first = upcoming[0];
+      var nm = escapeHtml(first.item.name);
+      if(first.days < 0) billMain = nm + ' is <span class="warn">' + (-first.days) + (first.days === -1 ? ' day' : ' days') + ' overdue</span>';
+      else if(first.days === 0) billMain = nm + ' is <span class="warn">due today</span>';
+      else if(first.days === 1) billMain = nm + ' is due tomorrow';
+      else billMain = nm + ' is due in ' + first.days + ' days';
+      billSub = fmt(first.item.amount) + (upcoming.length > 1 ? (' · +' + (upcoming.length - 1) + ' more this week') : '');
+    } else {
+      billMain = 'No bills due this week';
+      billSub = (state.items || []).length ? 'Nothing to pay in the next 7 days ✓' : 'Add bills under Payments';
+    }
+    addRow('🧾', 'var(--gold)', billMain, billSub, function(){ scrollToEl(document.getElementById('list')); });
+
+    // Spending
+    var spentToday = round2((spendState[todayKey] || []).reduce(function(s2, e){ return s2 + e.amount; }, 0));
+    var countToday = (spendState[todayKey] || []).length;
+    addRow('💸', 'var(--mint)', fmt(spentToday) + ' spent today',
+      countToday ? (countToday + (countToday === 1 ? ' thing logged' : ' things logged')) : 'Tap to log spending',
+      function(){ scrollToEl(document.getElementById('spendingSection')); });
+  }
+  function scrollToEl(el){
+    if(!el) return;
+    var y = el.getBoundingClientRect().top + window.pageYOffset - 20;
+    window.scrollTo({ top: y, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+  function goToView(v){
+    currentView = v;
+    try{ localStorage.setItem(VIEW_KEY, currentView); }catch(e){}
+    applyView();
+    window.scrollTo(0, 0);
+    playIntro();
+  }
+
+  /* ================= undo toast ================= */
+  var toastEl = document.getElementById('toast');
+  var toastMsg = document.getElementById('toastMsg');
+  var toastUndo = document.getElementById('toastUndo');
+  var toastTimer = null, undoSnapshot = null;
+  function takeSnapshot(){
+    return JSON.stringify({ state: state, spendState: spendState, notes: notes, tasks: tasks });
+  }
+  // Runs a delete right away and keeps a copy for 5 seconds so it can be undone.
+  function withUndo(message, doDelete){
+    var snap = takeSnapshot();
+    doDelete();
+    undoSnapshot = snap;
+    toastMsg.textContent = message;
+    toastEl.classList.remove('show');
+    void toastEl.offsetWidth;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+  function hideToast(){
+    toastEl.classList.remove('show');
+    undoSnapshot = null;
+  }
+  toastUndo.addEventListener('click', function(){
+    if(!undoSnapshot) return;
+    var data = JSON.parse(undoSnapshot);
+    clearTimeout(toastTimer);
+    hideToast();
+    state = data.state; spendState = data.spendState; notes = data.notes; tasks = data.tasks;
+    save(); saveSpend(); saveNotes(); saveTasks();
+    render(); renderAll(); renderIncomeHistory(); renderNotes(); renderTasks();
+  });
+
+  /* ================= currency picker ================= */
+  var currencyOverlay = document.getElementById('currencyOverlay');
+  var currencyList = document.getElementById('currencyList');
+  function updateCurrencyLabels(){
+    document.getElementById('settingsCurrencyNow').textContent = currentCurrency().sym;
+  }
+  function renderCurrencyList(){
+    currencyList.innerHTML = '';
+    var cur = currentCurrency().code;
+    CURRENCIES.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'theme-opt' + (c.code === cur ? ' selected' : '');
+      b.innerHTML = '<span class="cur-sym"></span><span class="name"></span><span class="check">✓</span>';
+      b.querySelector('.cur-sym').textContent = c.sym;
+      b.querySelector('.name').textContent = c.name;
+      b.addEventListener('click', function(){
+        themeState.currency = c.code;
+        saveTheme();
+        renderCurrencyList();
+        updateCurrencyLabels();
+        render(); renderAll(); renderIncomeHistory();
+      });
+      currencyList.appendChild(b);
+    });
+  }
+  document.getElementById('currencyDoneBtn').addEventListener('click', function(){ currencyOverlay.classList.remove('open'); });
+  currencyOverlay.addEventListener('click', function(e){ if(e.target === currencyOverlay) currencyOverlay.classList.remove('open'); });
+  updateCurrencyLabels();
+  render();
+
+  /* ================= opening animation ================= */
+  function playIntro(){
+    if(reduceMotion) return;
+    [document.getElementById('app'), document.getElementById('notesApp'), document.getElementById('tasksApp')].forEach(function(view){
+      var i = 0;
+      Array.prototype.forEach.call(view.children, function(el){
+        if(el.classList.contains('sticker-layer') || el.id === 'resetBtn') return;
+        el.style.setProperty('--i', i++);
+      });
+    });
+    ['savingsList', 'list', 'budgetList', 'taskListWrap'].forEach(function(id){
+      var box = document.getElementById(id);
+      if(!box) return;
+      var cards = box.querySelectorAll('.save-total, .save-item, .item, .budget-row, .task-card');
+      Array.prototype.forEach.call(cards, function(c, j){ c.style.setProperty('--j', Math.min(j, 8)); });
+    });
+    document.body.classList.remove('intro');
+    void document.body.offsetWidth;
+    document.body.classList.add('intro');
+    clearTimeout(playIntro.t);
+    playIntro.t = setTimeout(function(){ document.body.classList.remove('intro'); }, 1900);
+  }
+  playIntro();
+
+  /* ================= settings sheet ================= */
+  var settingsOverlay = document.getElementById('settingsOverlay');
+  function closeSettings(){ settingsOverlay.classList.remove('open'); }
+  document.getElementById('bnavSettings').addEventListener('click', function(){ settingsOverlay.classList.add('open'); });
+  document.getElementById('settingsDoneBtn').addEventListener('click', closeSettings);
+  settingsOverlay.addEventListener('click', function(e){ if(e.target === settingsOverlay) closeSettings(); });
+  document.getElementById('settingsThemeBtn').addEventListener('click', function(){ closeSettings(); document.getElementById('themeBtn').click(); });
+  document.getElementById('settingsStickerBtn').addEventListener('click', function(){ closeSettings(); document.getElementById('stickerMenuBtn').click(); });
+  document.getElementById('settingsResetBtn').addEventListener('click', function(){ closeSettings(); document.getElementById('resetBtn').click(); });
+  document.getElementById('settingsCurrencyBtn').addEventListener('click', function(){ closeSettings(); renderCurrencyList(); currencyOverlay.classList.add('open'); });
 
   /* ================= cloud sync (Firebase) ================= */
   var firebaseConfig = {
