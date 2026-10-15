@@ -722,7 +722,7 @@
     font-family:"Fraunces", Georgia, serif;
     font-size:17px; margin:0; font-weight:600;
   }
-  #addBtn{
+  #addBtn, #addSaveGoalBtn{
     width:38px;height:38px;
     border-radius:50%;
     background:var(--gold);
@@ -735,7 +735,19 @@
     box-shadow:var(--shadow);
     transition:transform 120ms ease;
   }
-  #addBtn:active{ transform:scale(.92); }
+  #addBtn:active, #addSaveGoalBtn:active{ transform:scale(.92); }
+  .save-total{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:13px 14px;
+    box-shadow:var(--shadow);
+  }
+  .save-total-top{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .save-total-label{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+  .save-total-amt{ font-family:"Fraunces", Georgia, serif; font-size:22px; font-weight:600; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .save-total-of{ font-family:"IBM Plex Mono", monospace; font-size:13px; color:var(--ink-soft); white-space:nowrap; font-variant-numeric:tabular-nums; text-align:right; }
+  .save-total-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
 
   #list{ display:flex; flex-direction:column; gap:9px; }
   .item{
@@ -4139,6 +4151,21 @@
       saveEmpty.textContent = 'No savings goals yet — tap + to start one, like a trip or a new phone.';
       savingsList.appendChild(saveEmpty);
     } else {
+      var goalsSaved = round2(savings.reduce(function(s,g){ return s + (g.saved || 0); }, 0));
+      var goalsTarget = round2(savings.reduce(function(s,g){ return s + (g.target || 0); }, 0));
+      var totalPct = goalsTarget > 0 ? Math.min(100, Math.round((goalsSaved/goalsTarget)*100)) : 0;
+      var totalCard = document.createElement('div');
+      totalCard.className = 'save-total';
+      totalCard.innerHTML =
+        '<div class="save-total-top">' +
+          '<div><div class="save-total-label">Total saved</div><div class="save-total-amt"></div></div>' +
+          '<div class="save-total-of"><div class="of-line"></div><div class="save-total-sub"></div></div>' +
+        '</div>' +
+        '<div class="save-bar-track"><div class="save-bar-fill" style="width:' + totalPct + '%"></div></div>';
+      totalCard.querySelector('.save-total-amt').textContent = fmt(goalsSaved);
+      totalCard.querySelector('.of-line').textContent = 'of ' + fmt(goalsTarget);
+      totalCard.querySelector('.save-total-sub').textContent = totalPct + '% · ' + fmt(Math.max(0, goalsTarget - goalsSaved)) + ' to go';
+      savingsList.appendChild(totalCard);
       savings.forEach(function(goal){
         var saved = round2(goal.saved || 0);
         var target = goal.target || 0;
