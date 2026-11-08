@@ -1570,7 +1570,7 @@
   .legend-amt{ font-family:"IBM Plex Mono", monospace; font-size:11.5px; color:var(--ink-faint); font-variant-numeric:tabular-nums; }
 
   /* ============ stat cards ============ */
-  .stat .v{ font-size:min(16px, 3.9vw); overflow-wrap:anywhere; }
+  .stat .v{ font-size:clamp(12px, 3.4vw, 16px); white-space:nowrap; }
   .stat .s{ font-size:11px; color:var(--ink-faint); margin-top:3px; }
   .stats .stat{ padding:12px 13px; }
 
@@ -1690,6 +1690,20 @@
   .currency-list{ display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow-y:auto; }
   .theme-opt .cur-sym{ width:34px; flex:none; font-family:"IBM Plex Mono", monospace; font-weight:600; color:var(--gold-deep); }
   .settings-row .cur-now{ font-family:"IBM Plex Mono", monospace; font-size:13px; color:var(--ink-soft); font-weight:600; }
+
+  /* ============ save status pill ============ */
+  .save-pill{
+    position:fixed; top:calc(10px + env(safe-area-inset-top, 0px)); right:12px; z-index:25;
+    padding:6px 12px; border-radius:999px;
+    background:var(--paper-raised); border:1px solid var(--line); box-shadow:var(--shadow);
+    font-family:"IBM Plex Sans", sans-serif; font-size:12px; font-weight:600; color:var(--ink-soft);
+    opacity:0; transform:translateY(-8px); pointer-events:none;
+    transition:opacity .25s ease, transform .3s cubic-bezier(.34,1.45,.64,1);
+  }
+  .save-pill.show{ opacity:1; transform:none; }
+  .save-pill.saved{ color:var(--mint); }
+  .save-pill.offline{ color:var(--gold-deep); }
+  .save-pill.error{ color:var(--coral); }
 </style>
 
 </head>
@@ -1984,6 +1998,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M8 12.2l2.8 2.8L16.2 9"/></svg>
       <span>Tasks</span>
     </button>
+    <a class="bnav-item" href="planner.html" style="text-decoration:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M7.5 9h4v4h-4zM14.5 9.5h2.5M14.5 13h2.5M7.5 16.5h9.5"/></svg>
+      <span>Planner</span>
+    </a>
     <button type="button" class="bnav-item" id="bnavSettings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/></svg>
       <span>Settings</span>
@@ -2245,6 +2263,8 @@
     </div>
   </div>
 </div>
+
+<div class="save-pill" id="savePill" role="status" aria-live="polite"></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
   <span class="toast-msg" id="toastMsg"></span>
@@ -4326,7 +4346,8 @@
   }
   function fmt(n){
     var v = Math.round((n||0)*100)/100;
-    var s = Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
+    var whole = Math.abs(v) % 1 === 0;
+    var s = Math.abs(v).toLocaleString(undefined,{ minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
     return (v < 0 ? '-' : '') + currentCurrency().sym + s;
   }
 
@@ -5740,6 +5761,8 @@
       firebase.initializeApp(firebaseConfig);
       fbAuth = firebase.auth();
       fbDb = firebase.firestore();
+      // Keep unsent changes on the phone (IndexedDB) so they upload next time, even if the app was closed.
+      try{ fbDb.enablePersistence({ synchronizeTabs: true }).catch(function(){}); }catch(e){}
       googleProvider = new firebase.auth.GoogleAuthProvider();
     }
   }catch(e){ console.error('Firebase init failed', e); }
@@ -5793,9 +5816,38 @@
     }
   }
 
+  /* ---- sync bookkeeping: which copy is newer, without asking the user ---- */
+  var SYNC_META_KEY = 'money-circle-sync-meta-v1';
+  var syncMeta = (function(){
+    try{ var raw = localStorage.getItem(SYNC_META_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+    return { dirty: false, localUpdatedAt: 0, lastSyncedAt: 0 };
+  })();
+  function saveSyncMeta(){ try{ localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncMeta)); }catch(e){} }
+  var myWriteIds = {};
+  var pushInFlight = false;
+
+  /* ---- small "Saving… / Saved" pill ---- */
+  var savePill = document.getElementById('savePill');
+  var savePillTimer = null;
+  function showSavePill(kind){
+    if(!savePill) return;
+    clearTimeout(savePillTimer);
+    savePill.className = 'save-pill show ' + kind;
+    savePill.textContent = kind === 'saving' ? 'Saving…'
+      : kind === 'saved' ? 'Saved ✓'
+      : kind === 'offline' ? 'Offline · saved on this phone'
+      : 'Couldn’t sync · will retry';
+    if(kind === 'saved') savePillTimer = setTimeout(function(){ savePill.classList.remove('show'); }, 1400);
+    if(kind === 'offline' || kind === 'error') savePillTimer = setTimeout(function(){ savePill.classList.remove('show'); }, 3500);
+  }
+
   function pushToCloud(){
+    clearTimeout(cloudPushTimer);
+    cloudPushTimer = null;
     if(!currentUser || !fbDb) return;
-    setSyncStatus('Syncing…');
+    var startedAt = Date.now();
+    var writeId = startedAt + '-' + Math.random().toString(36).slice(2,8);
+    myWriteIds[writeId] = true;
     var payload = {
       state: state,
       spendState: spendState,
@@ -5803,82 +5855,110 @@
       notes: notes,
       tasks: tasks,
       stickers: stickers,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date(startedAt).toISOString(),
+      updatedMs: startedAt,
+      writeId: writeId
     };
-    justPushedJSON = JSON.stringify(payload);
-    fbDb.collection('users').doc(currentUser.uid).set(payload).then(function(){
+    pushInFlight = true;
+    setSyncStatus('Syncing…');
+    if(navigator.onLine === false){ showSavePill('offline'); } else { showSavePill('saving'); }
+    fbDb.collection('users').doc(currentUser.uid).set(JSON.parse(JSON.stringify(payload))).then(function(){
+      pushInFlight = false;
+      syncMeta.lastSyncedAt = startedAt;
+      if(syncMeta.localUpdatedAt <= startedAt) syncMeta.dirty = false; // nothing newer is waiting
+      saveSyncMeta();
       setSyncStatus('Synced');
+      showSavePill('saved');
     }).catch(function(err){
-      setSyncStatus('Sync failed: ' + err.message);
+      pushInFlight = false;
+      setSyncStatus('Sync failed: ' + err.message + ' — will retry');
+      showSavePill('error');
+      clearTimeout(cloudPushTimer);
+      cloudPushTimer = setTimeout(pushToCloud, 5000);
     });
   }
 
+  // Every save in the app comes through here: remember the change, then upload it shortly after.
   function scheduleCloudPush(){
+    if(typeof syncMeta !== 'undefined' && syncMeta){
+      syncMeta.dirty = true;
+      syncMeta.localUpdatedAt = Date.now();
+      saveSyncMeta();
+    }
     if(!currentUser || !fbDb) return;
     clearTimeout(cloudPushTimer);
-    cloudPushTimer = setTimeout(pushToCloud, 800);
+    cloudPushTimer = setTimeout(pushToCloud, 600);
   }
 
+  // Leaving the app (switching apps, locking the phone, closing the tab): save edits and upload right away.
+  function flushEverything(){
+    try{ if(typeof editingNoteId !== 'undefined' && editingNoteId) flushNoteEdits(); }catch(e){}
+    try{ if(typeof editingTaskId !== 'undefined' && editingTaskId) flushTaskEdits(); }catch(e){}
+    if(currentUser && fbDb && (cloudPushTimer || syncMeta.dirty)) pushToCloud();
+  }
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden') flushEverything(); });
+  window.addEventListener('pagehide', flushEverything);
+  window.addEventListener('online', function(){ if(currentUser && syncMeta.dirty) pushToCloud(); });
+
   var cloudUnsubscribe = null;
-  var lastAppliedRemoteJSON = null;
-  var justPushedJSON = null;
+
+  function cloudTime(data){
+    return data.updatedMs || (data.updatedAt ? Date.parse(data.updatedAt) : 0) || 0;
+  }
 
   function applyCloudData(data){
-    var snapshotJSON = JSON.stringify(data);
-    if(snapshotJSON === lastAppliedRemoteJSON) return; // already showing this
-    if(snapshotJSON === justPushedJSON) { lastAppliedRemoteJSON = snapshotJSON; return; } // it's just our own write echoing back
-    lastAppliedRemoteJSON = snapshotJSON;
     if(data.state){ state = data.state; if(state.total){ state.total = round2(state.total); } try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
     if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
     if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
     if(data.notes){ notes = data.notes; try{ localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }catch(e){} if(currentView === 'notes') renderNotes(); }
     if(data.tasks){ tasks = data.tasks; try{ localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }catch(e){} if(currentView === 'tasks' && !editingTaskId) renderTasks(); }
     if(data.stickers){ stickers = { tracker: data.stickers.tracker || [], notes: data.stickers.notes || [], tasks: data.stickers.tasks || [] }; try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){} renderAllStickers(); }
+    syncMeta.lastSyncedAt = cloudTime(data);
+    syncMeta.dirty = false;
+    saveSyncMeta();
     if(document.activeElement !== totalInput) totalInput.value = state.total || '';
     processRecurring();
     render(); renderAll(); renderIncomeHistory();
+    if(typeof updateCurrencyLabels === 'function') updateCurrencyLabels();
   }
 
   function startRealtimeSync(user){
     if(cloudUnsubscribe) { cloudUnsubscribe(); cloudUnsubscribe = null; }
     cloudUnsubscribe = fbDb.collection('users').doc(user.uid).onSnapshot(function(doc){
       if(!doc.exists) return;
-      applyCloudData(doc.data() || {});
+      if(doc.metadata && doc.metadata.hasPendingWrites) return; // our own write, not uploaded yet
+      var data = doc.data() || {};
+      if(data.writeId && myWriteIds[data.writeId]) return;     // our own write coming back
+      if(cloudTime(data) <= (syncMeta.lastSyncedAt || 0)) return; // nothing new
+      if(syncMeta.dirty || cloudPushTimer || pushInFlight) return; // we have newer local changes on the way up
+      applyCloudData(data);
       setSyncStatus('Synced just now');
     }, function(err){
       setSyncStatus('Sync connection lost: ' + (err && err.message ? err.message : err));
     });
   }
 
+  // On sign-in / app open: newest copy wins automatically. No more OK / Cancel popup.
   function pullFromCloud(user){
     setSyncStatus('Syncing…');
     fbDb.collection('users').doc(user.uid).get().then(function(doc){
       if(!doc.exists){ pushToCloud(); startRealtimeSync(user); return; }
       var data = doc.data() || {};
-      var localHasData = (state.items && state.items.length) || (state.total) || Object.keys(spendState).length || (notes && notes.length) || (tasks && tasks.length);
-      var cloudHasData = (data.state && ((data.state.items && data.state.items.length) || data.state.total)) || (data.spendState && Object.keys(data.spendState).length) || (data.notes && data.notes.length) || (data.tasks && data.tasks.length);
-      var useCloud = true;
-      if(cloudHasData && localHasData){
-        useCloud = window.confirm('You have data both on this device and in the cloud. Load the cloud version?\n\nOK = use cloud data\nCancel = keep this device\'s data (and upload it to the cloud)');
-      }
-      if(useCloud && (data.state || data.spendState || data.themeState || data.notes || data.tasks)){
-        lastAppliedRemoteJSON = JSON.stringify(data);
-        if(data.state){ state = data.state; if(state.total){ state.total = round2(state.total); } try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
-        if(data.spendState){ spendState = data.spendState; try{ localStorage.setItem(SPEND_KEY, JSON.stringify(spendState)); }catch(e){} }
-        if(data.themeState){ themeState = data.themeState; try{ localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }catch(e){} applyTheme(); }
-        if(data.notes){ notes = data.notes; try{ localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }catch(e){} if(currentView === 'notes') renderNotes(); }
-        if(data.tasks){ tasks = data.tasks; try{ localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }catch(e){} if(currentView === 'tasks' && !editingTaskId) renderTasks(); }
-        if(data.stickers){ stickers = { tracker: data.stickers.tracker || [], notes: data.stickers.notes || [], tasks: data.stickers.tasks || [] }; try{ localStorage.setItem(STICKERS_KEY, JSON.stringify(stickers)); }catch(e){} renderAllStickers(); }
-        totalInput.value = state.total || '';
-        processRecurring();
-        render(); renderAll(); renderIncomeHistory();
+      var hasCloud = !!(data.state || data.spendState || data.notes || data.tasks);
+      var localNewer = syncMeta.dirty && syncMeta.localUpdatedAt > cloudTime(data);
+      if(hasCloud && !localNewer){
+        if(syncMeta.dirty){
+          // Both changed: keep a backup of this phone's copy before taking the newer cloud one.
+          try{ localStorage.setItem('money-circle-backup-v1', JSON.stringify({ savedAt: Date.now(), state: state, spendState: spendState, notes: notes, tasks: tasks, stickers: stickers })); }catch(e){}
+        }
+        applyCloudData(data);
         setSyncStatus('Synced');
       } else {
         pushToCloud();
       }
       startRealtimeSync(user);
     }).catch(function(err){
-      setSyncStatus('Sync failed: ' + err.message);
+      setSyncStatus('Sync failed: ' + err.message + ' — your changes are saved on this device');
     });
   }
 
